@@ -9,11 +9,13 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "node --test src/**/*.test.mjs"
   },
   "dependencies": {
     "better-auth": "^1.7.11",
     "drizzle-orm": "^0.45.4",
+    "lucide-react": "^1.60.0",
     "next": "16.4.2",
     "postgres": "^3.4.9",
     "react": "19.3.0",

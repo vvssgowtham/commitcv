@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Tokens from design/*.md, one prefix per reference (see design/README.md):
+ *   jr- Jobright (landing, onboarding, scores) · ln- Linear, light palette (app shell, dashboard, job analysis)
+ *   no- Notion (profile editor) · vc- Vercel (GitHub projects) · doc- generated resume
+ */
+@theme {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-titillium), "Arial Narrow", system-ui, sans-serif;
+  --font-geist: var(--font-geist-sans), Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-jr-mint: #00f0a0;
+  --color-jr-mint-canvas: #ecffe0;
+  --color-jr-muted: #86909c;
+  --color-jr-hairline: #e5e7eb;
+  --color-jr-soft: #f2f4f5;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Linear structure in a light palette so the app shell matches the light Notion/Vercel/document screens
+     (design/linear.md is dark-only; see design/README.md). Ladder steps darker instead of lighter. */
+  --color-ln-canvas: #fbfbfc;
+  --color-ln-surface-1: #ffffff;
+  --color-ln-surface-2: #f7f7f8;
+  --color-ln-surface-3: #f0f0f2;
+  --color-ln-surface-4: #ebebee;
+  --color-ln-hairline: #e8e8ec;
+  --color-ln-hairline-strong: #d9d9de;
+  --color-ln-ink: #0f1011;
+  --color-ln-ink-muted: #3c3f44;
+  --color-ln-ink-subtle: #6b6f76;
+  --color-ln-ink-tertiary: #8a8f98;
+  --color-ln-primary: #5e6ad2;
+  --color-ln-primary-hover: #828fff;
+  --color-ln-primary-focus: #5e69d1;
+  --color-ln-success: #27a644;
+
+  --color-no-canvas: #f6f5f4;
+  --color-no-ink: #000000;
+  --color-no-ink-secondary: #31302e;
+  --color-no-ink-muted: #615d59;
+  --color-no-ink-faint: #a39e98;
+  --color-no-hairline: #e6e6e6;
+  --color-no-blue: #0075de;
+  --color-no-blue-active: #005bab;
+  --color-no-sky: #62aef0;
+  --color-no-purple: #d6b6f6;
+  --color-no-pink: #ff64c8;
+  --color-no-orange: #dd5b00;
+  --color-no-teal: #2a9d99;
+  --color-no-green: #1aae39;
+
+  --color-vc-canvas: #fafafa;
+  --color-vc-ink: #171717;
+  --color-vc-body: #4d4d4d;
+  --color-vc-mute: #8f8f8f;
+  --color-vc-faint: #a1a1a1;
+  --color-vc-hairline: #ebebeb;
+  --color-vc-hairline-soft: #f2f2f2;
+  --color-vc-link: #0070f3;
+  --color-vc-warning: #f5a623;
+
+  --shadow-no-soft: rgba(0, 0, 0, 0.01) 0 0.175px 1.041px, rgba(0, 0, 0, 0.02) 0 0.8px 2.925px,
+    rgba(0, 0, 0, 0.027) 0 2.025px 7.847px, rgba(0, 0, 0, 0.04) 0 4px 18px;
+  --shadow-vc-whisper: 0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-jr-float: 0 12px 40px -12px rgba(0, 0, 0, 0.12);
+
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    to { transform: translateX(-50%); }
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-ln-primary-focus) 60%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
+@media print {
+  @page { margin: 0.5in; }
+  .no-print { display: none !important; }
 }
