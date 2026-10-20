@@ -15,7 +15,7 @@ const item = { id: z.string().min(1).max(64), source: z.enum(sourceTypes) };
 
 export const profileSchema = z.object({
   summary: text(2000),
-  contact: z.object({ phone: text(40), location: text(120), linkedin: text(200), github: text(200) }),
+  contact: z.object({ phone: text(40), location: text(120), linkedin: text(200), github: text(200), portfolio: text(200) }),
   experience: z.array(z.object({
     ...item, company: text(120).min(1, "Company is required"), jobTitle: text(120).min(1, "Job title is required"),
     employmentType: text(60), startDate: month, endDate: month, description: text(5000),
@@ -39,7 +39,7 @@ export type ListKey = "education" | "experience" | "projects" | "certifications"
 
 export const emptyProfile: Profile = {
   summary: "",
-  contact: { phone: "", location: "", linkedin: "", github: "" },
+  contact: { phone: "", location: "", linkedin: "", github: "", portfolio: "" },
   education: [], experience: [], projects: [], skills: [], certifications: [], awards: [],
 };
 

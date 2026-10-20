@@ -116,7 +116,7 @@ export function assembleResume(
 
   const c = profile.contact;
   return {
-    header: { name: user.name, email: user.email, phone: c.phone, location: c.location, links: [c.linkedin, c.github].filter(Boolean) },
+    header: { name: user.name, email: user.email, phone: c.phone, location: c.location, links: [c.linkedin, c.github, c.portfolio].filter(Boolean) },
     summary: summaryOk ? modelSummary : profile.summary,
     skills,
     experience,

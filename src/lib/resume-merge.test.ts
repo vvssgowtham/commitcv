@@ -5,7 +5,7 @@ import { applyChanges, diffResume } from "./resume-merge";
 
 const base = (): Profile => ({
   summary: "Old summary",
-  contact: { phone: "", location: "", linkedin: "", github: "" },
+  contact: { phone: "", location: "", linkedin: "", github: "", portfolio: "" },
   education: [],
   experience: [
     { id: "a", company: "Acme", jobTitle: "Engineer", employmentType: "", startDate: "2020-01", endDate: "", description: "old", source: "RESUME" },
