@@ -1,16 +1,62 @@
-import { extractText, getDocumentProxy } from "unpdf";
+import { extractTextItems, getDocumentProxy, type StructuredTextItem } from "unpdf";
 import { z } from "zod";
 import type { StoredParsedResume } from "./profile";
 
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+// PDF text items come out in content-stream order, which has no guaranteed relation to reading
+// order — resumes are very often two columns (a sidebar for contact/skills, a main body for
+// experience), and naively concatenating stream order interleaves the two. We reconstruct reading
+// order from each item's position instead: detect a column gutter, then within each column
+// (left to right) group items into lines by vertical position (top to bottom) and sort each
+// line's items left to right.
+const LINE_TOLERANCE = 3; // points; items within this Y distance are treated as the same line
+const MIN_GUTTER = 36; // points (0.5in); a horizontal gap at least this wide splits into columns
+
+export function splitIntoColumns(items: StructuredTextItem[]): StructuredTextItem[][] {
+  if (items.length === 0) return [];
+  const xs = items.map((it) => it.x).toSorted((a, b) => a - b);
+  let gutterAt = -1;
+  let widest = MIN_GUTTER;
+  for (let i = 1; i < xs.length; i++) {
+    const gap = xs[i] - xs[i - 1];
+    if (gap > widest) { widest = gap; gutterAt = xs[i - 1] + gap / 2; }
+  }
+  // shortcut: at most a two-column split (covers the common sidebar + body resume layout);
+  // a three-or-more-column layout still gets grouped into two.
+  if (gutterAt < 0) return [items];
+  const left = items.filter((it) => it.x < gutterAt);
+  const right = items.filter((it) => it.x >= gutterAt);
+  // A split only counts as real columns if both sides have enough independent vertical spread —
+  // otherwise it's just one item sitting further right on an otherwise single-column line.
+  const spread = (col: StructuredTextItem[]) => new Set(col.map((it) => Math.round(it.y / LINE_TOLERANCE))).size;
+  return spread(left) >= 3 && spread(right) >= 3 ? [left, right] : [items];
+}
+
+export function columnToText(items: StructuredTextItem[]): string {
+  const sorted = items.toSorted((a, b) => b.y - a.y || a.x - b.x); // top to bottom (PDF y grows upward), then left to right
+  const lines: StructuredTextItem[][] = [];
+  for (const item of sorted) {
+    const line = lines.at(-1);
+    if (line && Math.abs(line[0].y - item.y) <= LINE_TOLERANCE) line.push(item);
+    else lines.push([item]);
+  }
+  return lines
+    .map((line) => line.toSorted((a, b) => a.x - b.x).map((it) => it.str).join(" ").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
 
 /**
  * pdf.js/unpdf can detach the buffer it's given (e.g. transferring it to a worker), so this parses
  * a copy — `bytes` itself is left intact for the caller to still use afterward (e.g. to store the file).
  */
 export async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  const { text } = await extractText(await getDocumentProxy(bytes.slice()), { mergePages: true });
-  return text;
+  const { items } = await extractTextItems(await getDocumentProxy(bytes.slice()));
+  return items
+    .map((page) => splitIntoColumns(page.filter((it) => it.str.trim())).map(columnToText).filter(Boolean).join("\n\n"))
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export type ResumeKind = "pdf" | "docx";
