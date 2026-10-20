@@ -57,3 +57,33 @@ test("a re-parsed subtitle appended to institution/project name isn't a new entr
   assert.deepEqual(changes.map((c) => c.kind).sort(), ["update", "update"]);
   assert.deepEqual(changes.map((c) => (c as { targetId: string }).targetId).sort(), ["e", "pr"]);
 });
+
+test("re-importing heals an existing duplicate pair by removing the redundant RESUME row", () => {
+  const p = base();
+  p.projects = [
+    { id: "keep", name: "DocuTalk — Chat-with-PDF (RAG)", description: "RAG pipeline", url: "https://x", technologies: [], source: "RESUME" },
+    { id: "dupe", name: "DocuTalk — Chat-with-PDF (RAG)", description: "RAG pipeline", url: "https://x", technologies: [], source: "RESUME" },
+  ];
+
+  const changes = diffResume(p, { projects: [{ name: "DocuTalk — Chat-with-PDF (RAG)", description: "RAG pipeline", url: "https://x", technologies: [] }] });
+  assert.deepEqual(changes.map((c) => c.kind), ["remove"]);
+  assert.equal((changes[0] as { targetId: string }).targetId, "dupe");
+
+  const next = applyChanges(p, changes, () => "unused");
+  assert.deepEqual(next.projects.map((pr) => pr.id), ["keep"]);
+});
+
+test("re-importing heals a duplicate without touching the user's own edited row", () => {
+  const p = base();
+  p.projects = [
+    { id: "mine", name: "ConnectMeIndia — Freelance Marketplace", description: "d", url: "", technologies: [], source: "USER_EDIT" },
+    { id: "stray", name: "ConnectMeIndia", description: "d", url: "https://connectmeindia.com", technologies: [], source: "RESUME" },
+  ];
+
+  const changes = diffResume(p, { projects: [{ name: "ConnectMeIndia", description: "d", url: "https://connectmeindia.com", technologies: [] }] });
+  assert.deepEqual(changes.map((c) => c.kind).sort(), ["kept", "remove"]);
+  assert.equal((changes.find((c) => c.kind === "remove") as { targetId: string }).targetId, "stray");
+
+  const next = applyChanges(p, changes, () => "unused");
+  assert.deepEqual(next.projects.map((pr) => pr.id), ["mine"]);
+});
