@@ -1,5 +1,7 @@
+import { createElement } from "react";
+import { Document, Page, Text, renderToBuffer } from "@react-pdf/renderer";
 import { describe, expect, test } from "vitest";
-import { normalizeParsed, sniffResume, type ParsedResumeOutput } from "./resume-file";
+import { extractPdfText, normalizeParsed, sniffResume, type ParsedResumeOutput } from "./resume-file";
 
 const bytes = (s: string) => new TextEncoder().encode(s);
 
@@ -9,6 +11,21 @@ describe("sniffResume", () => {
     expect(sniffResume(bytes("PK\x03\x04....word/document.xml...."))).toBe("docx");
     expect(sniffResume(bytes("PK\x03\x04....xl/workbook.xml"))).toBeNull(); // a zip, but not a Word file
     expect(sniffResume(bytes("<html>%PDF-"))).toBeNull();
+  });
+});
+
+describe("extractPdfText", () => {
+  test("leaves the original bytes usable afterward (regression: pdf.js/unpdf can detach the buffer it's given)", async () => {
+    const buf = await renderToBuffer(createElement(Document, null, createElement(Page, null, createElement(Text, null, "Software Engineer with 5 years experience"))));
+    const bytes = new Uint8Array(buf);
+
+    const text = await extractPdfText(bytes);
+    expect(text).toContain("Software Engineer");
+
+    // The real bug: reusing `bytes` after parsing (e.g. to upload it) used to throw
+    // "Cannot perform Construct on a detached ArrayBuffer".
+    expect(() => new Uint8Array(bytes.buffer)).not.toThrow();
+    expect(bytes.length).toBeGreaterThan(0);
   });
 });
 

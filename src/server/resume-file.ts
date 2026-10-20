@@ -1,7 +1,17 @@
+import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
 import type { StoredParsedResume } from "./profile";
 
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+/**
+ * pdf.js/unpdf can detach the buffer it's given (e.g. transferring it to a worker), so this parses
+ * a copy — `bytes` itself is left intact for the caller to still use afterward (e.g. to store the file).
+ */
+export async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  const { text } = await extractText(await getDocumentProxy(bytes.slice()), { mergePages: true });
+  return text;
+}
 
 export type ResumeKind = "pdf" | "docx";
 export const contentTypes: Record<ResumeKind, string> = {
