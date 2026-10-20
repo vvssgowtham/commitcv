@@ -63,8 +63,28 @@ function candidateData(p: Profile, repos: RepoRow[]) {
     certifications: p.certifications.map(({ id, name, issuingOrganization }) => ({ id, name, issuingOrganization })),
     awards: p.awards.map(({ id, name, description }) => ({ id, name, description })),
     skills: p.skills.map(({ id, skill }) => ({ id, skill })),
-    repos: repos.map((r) => ({ id: r.id, name: r.name, description: r.description, languages: r.languages, topics: r.topics, readme: r.readmeExcerpt?.slice(0, 1500) })),
+    repos: repos.map((r) => ({ id: r.id, name: r.name, description: r.description, languages: r.languages, topics: r.topics, readme: r.readmeExcerpt?.slice(0, 600) })),
   };
+}
+
+// Sending every included repo with its README blew past Groq's free-tier 8k tokens/minute
+// (40 repos ≈ 13.7k tokens). Only the repos most relevant to the posting go to the model.
+const MAX_REPOS = 12;
+const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9+#.]{2,}/g) ?? []);
+
+/** Rank by overlap between the posting and each repo's name, description, languages and topics.
+ * README is left out of scoring so long READMEs don't win on common words; ties keep recency order. */
+// shortcut: plain word overlap, upgrade to embeddings if recommended repos feel off
+export function shortlistRepos<R extends Pick<RepoRow, "name" | "description" | "languages" | "topics">>(repos: R[], posting: string): R[] {
+  if (repos.length <= MAX_REPOS) return repos;
+  const want = words(posting);
+  const score = (r: R) => {
+    const have = words([r.name.replace(/[-_]/g, " "), r.description ?? "", ...Object.keys(r.languages ?? {}), ...(r.topics ?? [])].join(" "));
+    let n = 0;
+    for (const w of have) if (want.has(w)) n++;
+    return n;
+  };
+  return repos.map((r) => [r, score(r)] as const).toSorted((a, b) => b[1] - a[1]).slice(0, MAX_REPOS).map(([r]) => r);
 }
 
 function ownedIds(p: Profile, repos: RepoRow[]): OwnedIds {
@@ -78,7 +98,7 @@ function ownedIds(p: Profile, repos: RepoRow[]): OwnedIds {
 /** Analyse `description` against the user's own data and store the job. Returns the new job id. */
 export async function analyzeAndSaveJob(userId: string, description: string, url: string | null) {
   const [profile, repos] = await Promise.all([getProfile(userId), listRepos(userId)]);
-  const included = repos.filter((r) => r.included);
+  const included = shortlistRepos(repos.filter((r) => r.included), description);
   const raw = await structured(analysisOutput, {
     system: SYSTEM,
     prompt: `<job_posting>\n${description}\n</job_posting>\n<candidate_data>\n${JSON.stringify(candidateData(profile, included))}\n</candidate_data>`,
