@@ -1,7 +1,6 @@
 import "server-only";
-import { anthropic } from "@ai-sdk/anthropic";
 import { xai } from "@ai-sdk/xai";
-import { APICallError, generateObject, NoObjectGeneratedError, type FlexibleSchema, type LanguageModel } from "ai";
+import { APICallError, generateObject, NoObjectGeneratedError, type FlexibleSchema } from "ai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import type { z } from "zod";
 import { env } from "@/env";
@@ -9,16 +8,9 @@ import { env } from "@/env";
 /** A failure the user can act on; the message is safe to show. */
 export class LlmError extends Error {}
 
-function model(): LanguageModel {
-  const e = env();
-  return e.LLM_PROVIDER === "anthropic" ? anthropic(e.LLM_MODEL) : xai(e.LLM_MODEL);
-}
+const model = () => xai(env().LLM_MODEL);
 
-// Each provider has its own knob for how much it reasons before answering.
-function effortOptions(effort: "low" | "medium" | "high"): SharedV4ProviderOptions {
-  if (env().LLM_PROVIDER === "anthropic") return { anthropic: { output_config: { effort } } };
-  return { xai: { reasoningEffort: effort } };
-}
+const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ xai: { reasoningEffort: effort } });
 
 /**
  * One structured-output call, same shape regardless of provider.
