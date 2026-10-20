@@ -8,7 +8,15 @@ import { env } from "@/env";
 /** A failure the user can act on; the message is safe to show. */
 export class LlmError extends Error {}
 
-const model = () => groq(env().GROQ_MODEL);
+// Verified available to a Groq key and tested end-to-end with a live structured-output call.
+const MODEL = "openai/gpt-oss-120b";
+
+// groq() reads GROQ_API_KEY from process.env itself; call env() anyway so a missing key fails
+// here with a clear message, not deeper inside the SDK.
+function model() {
+  env();
+  return groq(MODEL);
+}
 
 const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ groq: { reasoningEffort: effort } });
 

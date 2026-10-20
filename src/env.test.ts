@@ -12,7 +12,6 @@ describe("env", () => {
   beforeEach(() => {
     Object.assign(process.env, BASE);
     delete process.env.GROQ_API_KEY;
-    delete process.env.GROQ_MODEL;
     vi.resetModules();
   });
   afterEach(() => {
@@ -25,15 +24,5 @@ describe("env", () => {
     expect(() => env()).toThrow(/GROQ_API_KEY/);
     process.env.GROQ_API_KEY = "gsk_x";
     expect(() => env()).not.toThrow();
-  });
-
-  test("defaults GROQ_MODEL to openai/gpt-oss-120b", async () => {
-    const { env } = await import("./env");
-    process.env.GROQ_API_KEY = "gsk_x";
-    expect(env().GROQ_MODEL).toBe("openai/gpt-oss-120b");
-    process.env.GROQ_MODEL = "llama-3.3-70b-versatile";
-    vi.resetModules();
-    const { env: env2 } = await import("./env");
-    expect(env2().GROQ_MODEL).toBe("llama-3.3-70b-versatile");
   });
 });
