@@ -27,7 +27,7 @@ export async function fetchGrantedRepos(token: string, fetchImpl: Fetch = fetch)
     });
     if (res.status === 401) throw new GithubAuthError("GitHub access expired");
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`GitHub ${path} → ${res.status}`);
+    if (!res.ok) throw new Error(`GitHub ${path} → ${res.status}: ${await res.text()}`);
     return (accept.endsWith("raw") ? await res.text() : await res.json()) as T;
   }
 
@@ -46,14 +46,24 @@ export async function fetchGrantedRepos(token: string, fetchImpl: Fetch = fetch)
     .slice(0, MAX_REPOS);
 
   return mapLimit(unique, 8, async (r) => {
-    const bytes = (await gh<Record<string, number>>(`/repos/${r.full_name}/languages`)) ?? {};
-    const readme = await gh<string>(`/repos/${r.full_name}/readme`, "application/vnd.github.raw");
+    // Languages/README are supplementary (used for ranking, not required to sync a repo at all) — a
+    // single repo erroring here (permissions, an empty repo, a transient GitHub issue) shouldn't take
+    // down every other repo's sync, which a shared Promise.all would otherwise do.
+    const lenient = <T,>(p: Promise<T | null>, what: string) => p.catch((e: unknown) => {
+      if (e instanceof GithubAuthError) throw e; // an expired token affects every repo — let it abort the whole sync
+      console.warn(`${what} fetch failed for ${r.full_name}:`, e);
+      return null;
+    });
+    const [bytes, readme] = await Promise.all([
+      lenient(gh<Record<string, number>>(`/repos/${r.full_name}/languages`), "languages"),
+      lenient(gh<string>(`/repos/${r.full_name}/readme`, "application/vnd.github.raw"), "readme"),
+    ]);
     return {
       githubRepoId: r.id,
       name: r.name,
       url: r.html_url,
       description: r.description,
-      languages: toPercent(bytes),
+      languages: toPercent(bytes ?? {}),
       topics: r.topics ?? [],
       readmeExcerpt: readme ? readme.slice(0, README_CHARS) : null,
       stars: r.stargazers_count,

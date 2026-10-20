@@ -63,7 +63,7 @@ export async function getProfile(userId: string): Promise<Profile> {
   return {
     ...emptyProfile,
     summary: p.summary ?? "",
-    contact: { phone: p.phone ?? "", location: p.location ?? "", linkedin: link("LinkedIn"), github: link("GitHub") },
+    contact: { phone: p.phone ?? "", location: p.location ?? "", linkedin: link("LinkedIn"), github: link("GitHub"), portfolio: link("Portfolio") },
     ...Object.fromEntries(sections),
   } as Profile;
 }
@@ -81,6 +81,7 @@ export async function writeProfile(userId: string, input: Profile, mode: "user" 
   const links = [
     next.contact.linkedin && { label: "LinkedIn", url: next.contact.linkedin },
     next.contact.github && { label: "GitHub", url: next.contact.github },
+    next.contact.portfolio && { label: "Portfolio", url: next.contact.portfolio },
   ].filter((l): l is { label: string; url: string } => !!l);
 
   await db.transaction(async (tx) => {

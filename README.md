@@ -31,7 +31,7 @@ TEST_DATABASE_URL=postgres://... npm test             # + integration tests (mig
 
 **No invented facts.** Names, employers, titles, dates, education and certifications are copied from the database. The model only selects, orders and rephrases; `src/server/resume-grounding.ts` rejects any bullet or summary that adds a number or technology its source doesn't contain and falls back to the user's own words.
 
-`src/server/services/llm.ts` calls Groq through the Vercel AI SDK rather than a provider-specific SDK; `LLM_MODEL` picks which Groq-hosted model (default `openai/gpt-oss-120b`). Resumes and job postings are always converted to plain text first (`unpdf`/`mammoth` for files, our own fetcher for URLs).
+`src/server/services/llm.ts` calls Groq (model `openai/gpt-oss-120b`) through the Vercel AI SDK rather than a provider-specific SDK. Resumes and job postings are always converted to plain text first (`unpdf`/`mammoth` for files, our own fetcher for URLs).
 
 **Fetching a pasted job URL is never done by the LLM's own web tool.** `src/server/services/safe-fetch.ts` fetches it on our server instead, so what gets stored is always the literal page text — never a model's rewrite or a different page it decided to visit. It defends against SSRF: only `https://`, DNS resolution is validated (including IPv4-mapped-IPv6 and loopback/private/link-local ranges, closing the cloud-metadata-endpoint class of bypass) at the moment of connecting rather than in a separate check-then-connect step, and each redirect hop is re-validated.
 
