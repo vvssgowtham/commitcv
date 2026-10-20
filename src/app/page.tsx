@@ -47,7 +47,7 @@ export default function Landing() {
               One profile.<br />A perfect resume <span className="relative isolate whitespace-nowrap">for every job<span aria-hidden className="absolute inset-x-0 bottom-1 -z-10 h-3 bg-jr-mint md:bottom-3 md:h-4" /></span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed font-light">
-              Paste a job link. Resumate reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in under a minute.
+              Paste a job link. Resumate reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in about a minute.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
               <SignInButton className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">
@@ -64,7 +64,7 @@ export default function Landing() {
             <div className="flex items-center gap-4 border-b border-jr-hairline pb-5">
               <ScoreRing value={91} />
               <div>
-                <p className="text-[13px] font-medium text-jr-muted">Tailored for</p>
+                <p className="text-[13px] font-medium text-jr-muted">Example · tailored for</p>
                 <p className="font-display text-2xl font-bold">Backend Engineer · Stripe</p>
               </div>
             </div>
@@ -84,7 +84,7 @@ export default function Landing() {
         </div>
 
         <dl className="mx-auto mt-20 grid max-w-[1200px] gap-8 sm:grid-cols-3">
-          {[["< 60s", "from job link to PDF"], ["3×", "more interview callbacks reported"], ["100%", "ATS-parsable output"]].map(([n, l]) => (
+          {[["PDF + DOCX", "import the resume you already have"], ["Read-only", "GitHub access, only to repos you pick"], ["0 invented facts", "every line traces back to your profile"]].map(([n, l]) => (
             <div key={l}>
               <dt className="font-display text-[38px] font-bold">{n}</dt>
               <dd className="text-sm font-medium text-black/70">{l}</dd>
@@ -161,9 +161,9 @@ export default function Landing() {
       <section className="bg-black px-4 py-24 text-white">
         <figure className="mx-auto max-w-3xl text-center">
           <blockquote className="font-display text-[32px] leading-tight font-semibold">
-            “I stopped keeping six versions of my resume. I paste the link, check the gaps, download. Got two onsite invites the first week.”
+            Tailored, never invented. If it isn’t in your profile or your code, it isn’t on your resume.
           </blockquote>
-          <figcaption className="mt-8 text-sm text-white/70">Priya S. · Backend Engineer</figcaption>
+          <figcaption className="mt-8 text-sm text-white/70">How Resumate writes every resume</figcaption>
         </figure>
       </section>
 
@@ -214,7 +214,10 @@ function FeatureBand({ title, body, cta, reverse, children }: { title: string; b
           <p className="mt-6 text-lg font-light">{body}</p>
           <SignInButton className="mt-8 inline-flex rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">{cta}</SignInButton>
         </div>
-        <div className="rounded-[40px] rounded-tl-none bg-white p-6 shadow-jr-float">{children}</div>
+        <div className="rounded-[40px] rounded-tl-none bg-white p-6 shadow-jr-float">
+          <p className="mb-3 text-[13px] font-medium text-jr-muted">Example</p>
+          {children}
+        </div>
       </div>
     </section>
   );

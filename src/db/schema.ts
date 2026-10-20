@@ -47,11 +47,22 @@ export const accounts = pgTable(
     accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
     refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
     scope: text("scope"),
+    password: text("password"), // part of Better Auth's core schema; unused with GitHub-only sign-in
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [unique().on(t.providerId, t.accountId)],
 );
+
+// Better Auth's core verification table (OAuth state uses a cookie here, but the library expects the table).
+export const verifications = pgTable("verifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
 
 // Original uploaded resume and its parsed content.
 export const resumes = pgTable("resumes", {

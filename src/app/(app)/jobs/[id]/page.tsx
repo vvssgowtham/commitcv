@@ -90,7 +90,7 @@ export default async function JobPage({ params }: PageProps<"/jobs/[id]">) {
                 </ul>
               </Panel>
             )}
-            <GeneratePanel repos={job.recommended.map((r) => ({ id: r.id, name: r.name, reason: r.reason }))} latestGenerationId={job.latestGeneration?.status === "ready" ? job.latestGeneration.id : null} />
+            <GeneratePanel jobId={job.id} repos={job.recommended.map((r) => ({ id: r.id, name: r.name, reason: r.reason }))} latestGenerationId={job.latestGeneration?.status === "ready" ? job.latestGeneration.id : null} />
           </aside>
         </div>
       </div>

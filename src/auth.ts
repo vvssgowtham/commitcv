@@ -2,10 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
-import { accounts, candidateProfiles, sessions, users } from "@/db/schema";
+import { accounts, candidateProfiles, sessions, users, verifications } from "@/db/schema";
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg", schema: { user: users, session: sessions, account: accounts } }),
+  database: drizzleAdapter(db, { provider: "pg", schema: { user: users, session: sessions, account: accounts, verification: verifications } }),
   socialProviders: {
     // Client id/secret of a GitHub App (not an OAuth App): its user tokens are limited to the app's
     // read-only permissions on repos the user installed it on, and expire after 8h (auto-refreshed).

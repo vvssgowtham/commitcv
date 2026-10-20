@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Check, FileText, Loader2, Sparkles } from "lucide-react";
+import { createResume } from "@/server/actions/generate";
 
 type PanelRepo = { id: string; name: string; reason: string };
 
-export function GeneratePanel({ repos, latestGenerationId }: { repos: PanelRepo[]; latestGenerationId: string | null }) {
+export function GeneratePanel({ jobId, repos, latestGenerationId }: { jobId: string; repos: PanelRepo[]; latestGenerationId: string | null }) {
+  const router = useRouter();
   const [selected, setSelected] = useState(() => new Set(repos.map((r) => r.id)));
-  const [busy] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const existing = !!latestGenerationId;
 
   function toggle(id: string) {
@@ -17,8 +21,13 @@ export function GeneratePanel({ repos, latestGenerationId }: { repos: PanelRepo[
     setSelected(next);
   }
 
-  // shortcut: resume generation is wired in the next PR (grounded generation + PDF); button stays disabled until then.
-  const generate = () => {};
+  async function generate() {
+    setBusy(true);
+    setError("");
+    const res = await createResume(jobId, [...selected]);
+    if (!res.ok) { setBusy(false); return setError(res.error); }
+    router.push(`/resumes/${res.data.generationId}`);
+  }
 
   return (
     <section className="rounded-xl border border-ln-hairline bg-ln-surface-1 p-5">
@@ -39,10 +48,10 @@ export function GeneratePanel({ repos, latestGenerationId }: { repos: PanelRepo[
       </ul>
 
       {repos.length === 0 && <p className="mt-4 text-sm text-ln-ink-subtle">None of your included repositories clearly fits this role. The resume will use projects from your profile.</p>}
-      <button onClick={generate} disabled
-        title="Coming in the next update"
+      {error && <p role="alert" className="mt-4 rounded-lg border border-[#f3c4c4] bg-[#fdf3f3] px-3 py-2 text-sm text-[#a31b1b]">{error}</p>}
+      <button onClick={generate} disabled={busy}
         className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ln-primary px-3.5 py-2.5 text-sm font-medium text-white hover:bg-ln-primary-hover disabled:opacity-50">
-        {busy ? <><Loader2 className="size-4 animate-spin" aria-hidden /> Tailoring your resume…</> : <><Sparkles className="size-4" aria-hidden /> {existing ? "Regenerate resume" : "Generate resume"}</>}
+        {busy ? <><Loader2 className="size-4 animate-spin" aria-hidden /> Tailoring your resume — about a minute…</> : <><Sparkles className="size-4" aria-hidden /> {existing ? "Regenerate resume" : "Generate resume"}</>}
       </button>
       {existing && !busy && (
         <Link href={`/resumes/${latestGenerationId}`} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-ln-hairline bg-ln-surface-2 px-3.5 py-2.5 text-sm font-medium hover:bg-ln-surface-3">
