@@ -7,6 +7,7 @@ const schema = z.object({
   BETTER_AUTH_URL: z.url(),
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
+  GITHUB_APP_SLUG: z.string().min(1), // github.com/apps/<slug>
   ANTHROPIC_API_KEY: z.string().min(1),
   R2_ACCOUNT_ID: z.string().min(1),
   R2_ACCESS_KEY_ID: z.string().min(1),

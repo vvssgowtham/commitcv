@@ -11,7 +11,7 @@ import { applyResume, uploadResume } from "@/server/actions/profile";
 
 const parseSteps = ["Reading your resume", "Building your profile"];
 
-export function OnboardingFlow({ userName }: { userName: string }) {
+export function OnboardingFlow({ userName, installUrl }: { userName: string; installUrl: string }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -59,11 +59,10 @@ export function OnboardingFlow({ userName }: { userName: string }) {
               <StepBadge n={1} done />
               <div className="flex-1">
                 <h2 className="font-display text-2xl font-semibold">Connect GitHub</h2>
-                <p className="text-sm font-medium text-jr-muted">You’ll choose which repos we can read on the GitHub projects page.</p>
+                <p className="text-sm font-medium text-jr-muted">
+                  Signed in as {userName}. <a href={installUrl} target="_blank" rel="noreferrer" className="font-semibold text-black underline underline-offset-2">Choose which repos we can read</a> (read-only).
+                </p>
               </div>
-              <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-jr-soft px-4 py-3 font-semibold">
-                <Check className="size-4" aria-hidden /> Signed in as {userName}
-              </span>
             </div>
           </li>
 
