@@ -1,16 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
-import type { Profile, SourceType } from "@/lib/mock-data";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Check, GripVertical, Loader2, Plus, Trash2, X } from "lucide-react";
+import type { ListKey, Profile, SourceType } from "@/lib/profile";
 import { ResumeReimport } from "@/components/resume-reimport";
+import { saveProfile } from "@/server/actions/profile";
 
 // Profile editor — design/notion.md: warm paper canvas, document column, borderless blocks,
 // one blue action, sticker colours only as decorative source dots.
 
 type Field = { key: string; label: string; type?: "text" | "date" | "textarea" | "url"; wide?: boolean };
-type ListKey = "education" | "experience" | "projects" | "certifications" | "awards";
 type Item = Record<string, unknown> & { id: string; source: SourceType };
 
 const sections: { key: ListKey; title: string; emoji: string; fields: Field[] }[] = [
@@ -60,11 +60,30 @@ const blockInput =
   "w-full rounded-[4px] bg-transparent px-1.5 py-1 text-[15px] text-no-ink placeholder:text-no-ink-faint hover:bg-black/[0.03] focus:bg-white focus:shadow-no-soft focus:outline-none";
 
 export function ProfileEditor({ initial, name, email, mode }: { initial: Profile; name: string; email: string; mode: "edit" | "onboarding" }) {
+  const router = useRouter();
   const [p, setP] = useState(initial);
   const [saved, setSaved] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, startSaving] = useTransition();
   const [skillDraft, setSkillDraft] = useState("");
 
-  const update = (next: Profile) => { setP(next); setSaved(false); };
+  const update = (next: Profile) => { setP(next); setSaved(false); setError(""); };
+
+  function save(then?: () => void) {
+    startSaving(async () => {
+      const res = await saveProfile(p);
+      if (!res.ok) return setError(res.error);
+      setP(res.data); // server-assigned ids and provenance
+      setSaved(true);
+      then?.();
+    });
+  }
+
+  // New items start with every field present, so they validate and render like loaded ones.
+  const blank = (k: ListKey): Item => ({
+    id: crypto.randomUUID(), source: "MANUAL",
+    ...Object.fromEntries(sections.find((s) => s.key === k)!.fields.map((f) => [f.key, f.key === "technologies" ? [] : ""])),
+  });
   const list = (k: ListKey) => p[k] as unknown as Item[];
   const setList = (k: ListKey, items: Item[]) => update({ ...p, [k]: items });
 
@@ -97,7 +116,7 @@ export function ProfileEditor({ initial, name, email, mode }: { initial: Profile
 
         <div className="flex items-start justify-between gap-4">
           <div className="text-5xl" aria-hidden>📄</div>
-          {mode === "edit" && <ResumeReimport profile={p} onApply={update} />}
+          {mode === "edit" && <ResumeReimport disabled={!saved} onApplied={(next) => { setP(next); setSaved(true); }} />}
         </div>
         <h1 className="mt-4 text-[40px] leading-[1.1] font-bold tracking-[-1px]">{name || "Your profile"}</h1>
         <p className="mt-2 text-no-ink-muted">Your single source of truth. Every tailored resume is built from this page.</p>
@@ -195,7 +214,7 @@ export function ProfileEditor({ initial, name, email, mode }: { initial: Profile
                 </article>
               ))}
               <button
-                onClick={() => setList(s.key, [...list(s.key), { id: crypto.randomUUID(), source: "MANUAL" } as Item])}
+                onClick={() => setList(s.key, [...list(s.key), blank(s.key)])}
                 className="flex w-full items-center gap-2 rounded-[5px] px-1.5 py-1.5 text-left text-[15px] text-no-ink-faint hover:bg-black/[0.03] hover:text-no-ink-muted"
               >
                 <Plus className="size-4" aria-hidden /> Add {s.title.toLowerCase().replace(/s$/, "")}
@@ -208,15 +227,17 @@ export function ProfileEditor({ initial, name, email, mode }: { initial: Profile
       {/* Save bar */}
       <div className={`no-print fixed inset-x-0 bottom-0 z-10 ${mode === "edit" ? "md:left-[240px]" : ""}`}>
         <div className="mx-auto mb-4 flex max-w-[760px] items-center justify-between gap-4 rounded-xl border border-no-hairline bg-white px-4 py-3 shadow-no-soft sm:mx-8 lg:mx-auto">
-          <span className="flex items-center gap-2 text-sm text-no-ink-muted" aria-live="polite">
-            {saved ? <><Check className="size-4 text-no-green" aria-hidden /> All changes saved</> : "Unsaved changes"}
+          <span className="flex min-w-0 items-center gap-2 text-sm text-no-ink-muted" aria-live="polite">
+            {error ? <span role="alert" className="text-[#793400]">{error}</span>
+              : saved ? <><Check className="size-4 text-no-green" aria-hidden /> All changes saved</> : "Unsaved changes"}
           </span>
           {mode === "onboarding" ? (
-            <Link href="/dashboard" className="rounded-full bg-no-blue px-5 py-2 font-medium text-white active:bg-no-blue-active">Finish setup</Link>
+            <button onClick={() => save(() => router.push("/dashboard"))} disabled={saving} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-no-blue px-5 py-2 font-medium text-white active:bg-no-blue-active disabled:opacity-60">
+              {saving && <Loader2 className="size-4 animate-spin" aria-hidden />} Finish setup
+            </button>
           ) : (
-            // shortcut: save only flips local state; wire to a server action later.
-            <button onClick={() => setSaved(true)} disabled={saved} className="rounded-full bg-no-blue px-5 py-2 font-medium text-white active:bg-no-blue-active disabled:opacity-40">
-              Save
+            <button onClick={() => save()} disabled={saved || saving} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-no-blue px-5 py-2 font-medium text-white active:bg-no-blue-active disabled:opacity-40">
+              {saving && <Loader2 className="size-4 animate-spin" aria-hidden />} Save
             </button>
           )}
         </div>

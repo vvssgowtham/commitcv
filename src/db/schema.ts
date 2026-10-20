@@ -1,4 +1,4 @@
-import { bigint, boolean, date, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date());
@@ -134,7 +134,7 @@ export const candidateProfiles = pgTable("candidate_profiles", {
   updatedAt: updatedAt(),
 });
 
-// end_date null = present
+// Dates are "YYYY" or "YYYY-MM" text, exactly as precise as the source; end_date null = present.
 export const candidateEducation = pgTable("candidate_education", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
@@ -142,8 +142,8 @@ export const candidateEducation = pgTable("candidate_education", {
   institution: text("institution").notNull(),
   degree: text("degree"),
   fieldOfStudy: text("field_of_study"),
-  startDate: date("start_date"),
-  endDate: date("end_date"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
   grade: text("grade"),
   description: text("description"),
 });
@@ -155,8 +155,8 @@ export const candidateExperience = pgTable("candidate_experience", {
   company: text("company").notNull(),
   jobTitle: text("job_title").notNull(),
   employmentType: text("employment_type"),
-  startDate: date("start_date"),
-  endDate: date("end_date"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
   description: text("description"),
 });
 
@@ -188,7 +188,7 @@ export const candidateCertifications = pgTable("candidate_certifications", {
   source: source(),
   name: text("name").notNull(),
   issuingOrganization: text("issuing_organization"),
-  issueDate: date("issue_date"),
+  issueDate: text("issue_date"),
   credentialUrl: text("credential_url"),
 });
 
@@ -198,7 +198,7 @@ export const candidateAwards = pgTable("candidate_awards", {
   source: source(),
   name: text("name").notNull(),
   issuer: text("issuer"),
-  date: date("date"),
+  date: text("date"),
   description: text("description"),
 });
 

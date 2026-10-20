@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { Profile } from "./mock-data";
+import type { Profile } from "./profile";
 import { applyChanges, diffResume } from "./resume-merge";
 
 const base = (): Profile => ({
@@ -8,7 +8,7 @@ const base = (): Profile => ({
   contact: { phone: "", location: "", linkedin: "", github: "" },
   education: [],
   experience: [
-    { id: "a", company: "Acme", jobTitle: "Engineer", employmentType: "", startDate: "2020-01", endDate: null, description: "old", source: "RESUME" },
+    { id: "a", company: "Acme", jobTitle: "Engineer", employmentType: "", startDate: "2020-01", endDate: "", description: "old", source: "RESUME" },
     { id: "b", company: "Beta", jobTitle: "Dev", employmentType: "", startDate: "2018-01", endDate: "2019-12", description: "mine", source: "USER_EDIT" },
   ],
   projects: [],
@@ -21,9 +21,9 @@ test("adds new items, updates resume-sourced items, keeps user edits", () => {
   const parsed = {
     summary: "New summary",
     experience: [
-      { company: "acme", jobTitle: "engineer", employmentType: "", startDate: "2020-01", endDate: null, description: "new" },
+      { company: "acme", jobTitle: "engineer", employmentType: "", startDate: "2020-01", endDate: "", description: "new" },
       { company: "Beta", jobTitle: "Dev", employmentType: "", startDate: "2018-01", endDate: "2019-12", description: "theirs" },
-      { company: "Gamma", jobTitle: "Lead", employmentType: "", startDate: "2024-01", endDate: null, description: "x" },
+      { company: "Gamma", jobTitle: "Lead", employmentType: "", startDate: "2024-01", endDate: "", description: "x" },
     ],
     skills: [{ skill: "go", category: "Languages" }, { skill: "Kafka", category: "Data" }],
   };

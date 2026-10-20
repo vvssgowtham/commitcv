@@ -1,10 +1,11 @@
 // shortcut: static mock data shaped like src/db/schema.ts so the UI flows can be clicked through; replace with DB reads when the backend lands.
 
-export type SourceType = "RESUME" | "MANUAL" | "GITHUB" | "USER_EDIT";
+import type { Profile } from "./profile";
+export { fmtMonth } from "./profile";
 
 export const user = { name: "Gowtham V", email: "gowtham@example.com", image: null as string | null };
 
-export const profile = {
+export const profile: Profile = {
   summary:
     "Full-stack engineer with 4 years building data-heavy web products in TypeScript and Python. Shipped real-time dashboards used by 20k+ analysts and cut API latency by 60% through caching and query redesign.",
   contact: { phone: "+91 98765 43210", location: "Hyderabad, India", linkedin: "linkedin.com/in/gowtham", github: "github.com/gowtham" },
@@ -18,7 +19,7 @@ export const profile = {
       endDate: "2020-05",
       grade: "8.4 CGPA",
       description: "",
-      source: "RESUME" as SourceType,
+      source: "RESUME",
     },
   ],
   experience: [
@@ -28,10 +29,10 @@ export const profile = {
       jobTitle: "Software Engineer II",
       employmentType: "Full-time",
       startDate: "2023-01",
-      endDate: null as string | null,
+      endDate: "",
       description:
         "Built portfolio analytics platform in Next.js and FastAPI serving 20k+ users\nReduced p95 API latency from 900ms to 350ms with Redis caching and query rewrites\nLed migration of 40 cron jobs to event-driven workers on AWS SQS",
-      source: "RESUME" as SourceType,
+      source: "RESUME",
     },
     {
       id: "ex2",
@@ -39,10 +40,10 @@ export const profile = {
       jobTitle: "Software Engineer",
       employmentType: "Full-time",
       startDate: "2020-07",
-      endDate: "2022-12" as string | null,
+      endDate: "2022-12",
       description:
         "Developed React dashboards for real-time market data over WebSockets\nDesigned PostgreSQL schemas for 300M+ row time-series tables with partitioning",
-      source: "MANUAL" as SourceType,
+      source: "MANUAL",
     },
   ],
   projects: [
@@ -52,20 +53,20 @@ export const profile = {
       description: "Open-source CLI that reconciles bank statements against accounting ledgers.",
       url: "github.com/gowtham/ledger-sync",
       technologies: ["Go", "PostgreSQL"],
-      source: "GITHUB" as SourceType,
+      source: "GITHUB",
     },
   ],
   skills: [
-    { id: "s1", skill: "TypeScript", category: "Languages", source: "RESUME" as SourceType },
-    { id: "s2", skill: "Python", category: "Languages", source: "RESUME" as SourceType },
-    { id: "s3", skill: "Go", category: "Languages", source: "GITHUB" as SourceType },
-    { id: "s4", skill: "React", category: "Frameworks", source: "RESUME" as SourceType },
-    { id: "s5", skill: "Next.js", category: "Frameworks", source: "GITHUB" as SourceType },
-    { id: "s6", skill: "FastAPI", category: "Frameworks", source: "RESUME" as SourceType },
-    { id: "s7", skill: "PostgreSQL", category: "Data", source: "RESUME" as SourceType },
-    { id: "s8", skill: "Redis", category: "Data", source: "MANUAL" as SourceType },
-    { id: "s9", skill: "AWS", category: "Cloud", source: "MANUAL" as SourceType },
-    { id: "s10", skill: "Docker", category: "Cloud", source: "RESUME" as SourceType },
+    { id: "s1", skill: "TypeScript", category: "Languages", source: "RESUME" },
+    { id: "s2", skill: "Python", category: "Languages", source: "RESUME" },
+    { id: "s3", skill: "Go", category: "Languages", source: "GITHUB" },
+    { id: "s4", skill: "React", category: "Frameworks", source: "RESUME" },
+    { id: "s5", skill: "Next.js", category: "Frameworks", source: "GITHUB" },
+    { id: "s6", skill: "FastAPI", category: "Frameworks", source: "RESUME" },
+    { id: "s7", skill: "PostgreSQL", category: "Data", source: "RESUME" },
+    { id: "s8", skill: "Redis", category: "Data", source: "MANUAL" },
+    { id: "s9", skill: "AWS", category: "Cloud", source: "MANUAL" },
+    { id: "s10", skill: "Docker", category: "Cloud", source: "RESUME" },
   ],
   certifications: [
     {
@@ -74,15 +75,14 @@ export const profile = {
       issuingOrganization: "Amazon Web Services",
       issueDate: "2023-06",
       credentialUrl: "",
-      source: "MANUAL" as SourceType,
+      source: "MANUAL",
     },
   ],
   awards: [
-    { id: "a1", name: "Hackathon Winner — FinHack 2022", issuer: "Finlytics", date: "2022-09", description: "", source: "MANUAL" as SourceType },
+    { id: "a1", name: "Hackathon Winner — FinHack 2022", issuer: "Finlytics", date: "2022-09", description: "", source: "MANUAL" },
   ],
 };
 
-export type Profile = typeof profile;
 
 export const repos = [
   { id: "r1", name: "ledger-sync", url: "github.com/gowtham/ledger-sync", description: "Reconcile bank statements against accounting ledgers from the CLI.", languages: { Go: 82, Shell: 12, Dockerfile: 6 }, stars: 214, pushedAt: "2 days ago", isPrivate: false },
@@ -198,38 +198,3 @@ export const findJob = (id: string) => jobs.find((j) => j.id === id);
 export const findRepo = (id: string) => repos.find((r) => r.id === id);
 export const generationForJob = (jobId: string) => generations.find((g) => g.jobId === jobId);
 
-export const fmtMonth = (ym: string | null) =>
-  ym ? new Date(`${ym}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Present";
-
-// shortcut: what any re-uploaded resume "parses" to; replace with the real parser output.
-export const reparsedResume = {
-  summary:
-    "Backend-leaning full-stack engineer with 4+ years building data-heavy products in TypeScript, Go and Python. Cut API latency 60% and moved 40 batch jobs to event-driven workers on AWS.",
-  experience: [
-    {
-      company: "Aarambha Invest",
-      jobTitle: "Software Engineer II",
-      employmentType: "Full-time",
-      startDate: "2023-01",
-      endDate: null as string | null,
-      description:
-        "Built portfolio analytics platform in Next.js and FastAPI serving 20k+ users\nReduced p95 API latency from 900ms to 350ms with Redis caching and query rewrites\nLed migration of 40 cron jobs to event-driven workers on AWS SQS and Kafka",
-    },
-    {
-      company: "Finlytics",
-      jobTitle: "Software Engineer",
-      employmentType: "Full-time",
-      startDate: "2020-07",
-      endDate: "2022-11" as string | null,
-      description: "Built React dashboards for real-time market data",
-    },
-  ],
-  certifications: [
-    { name: "Certified Kubernetes Application Developer", issuingOrganization: "CNCF", issueDate: "2025-03", credentialUrl: "" },
-  ],
-  skills: [
-    { skill: "Kafka", category: "Data" },
-    { skill: "Kubernetes", category: "Cloud" },
-    { skill: "TypeScript", category: "Languages" },
-  ],
-};

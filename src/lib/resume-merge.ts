@@ -1,9 +1,7 @@
-import type { Profile } from "./mock-data";
+import type { ListKey, Profile } from "./profile";
 
 // Re-importing a resume must never clobber what the user typed: items they added (MANUAL) or edited
 // (USER_EDIT) are kept as-is; only items that came from a previous resume (RESUME) can be updated.
-
-type ListKey = "education" | "experience" | "projects" | "certifications" | "awards";
 
 // Parser output: same fields as the profile, minus the ids and provenance we assign on apply.
 export type ParsedResume = { summary?: string; skills?: { skill: string; category: string }[] } & {
