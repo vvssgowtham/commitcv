@@ -1,5 +1,5 @@
 import "server-only";
-import { xai } from "@ai-sdk/xai";
+import { groq } from "@ai-sdk/groq";
 import { APICallError, generateObject, NoObjectGeneratedError, type FlexibleSchema } from "ai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import type { z } from "zod";
@@ -8,9 +8,9 @@ import { env } from "@/env";
 /** A failure the user can act on; the message is safe to show. */
 export class LlmError extends Error {}
 
-const model = () => xai(env().LLM_MODEL);
+const model = () => groq(env().LLM_MODEL);
 
-const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ xai: { reasoningEffort: effort } });
+const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ groq: { reasoningEffort: effort } });
 
 /**
  * One structured-output call, same shape regardless of provider.
@@ -24,8 +24,9 @@ export async function structured<S extends z.ZodType>(schema: S, { system, promp
     return object;
   } catch (e) {
     if (NoObjectGeneratedError.isInstance(e)) throw new LlmError("Couldn't read the result. Please try again.");
-    if (APICallError.isInstance(e) && (e.isRetryable || e.statusCode === 429)) {
-      throw new LlmError("Our AI provider is busy right now. Please try again in a minute.");
+    if (APICallError.isInstance(e)) {
+      if (e.statusCode === 401 || e.statusCode === 403) throw new LlmError("The AI provider rejected our API key. Check GROQ_API_KEY.");
+      if (e.isRetryable || e.statusCode === 429) throw new LlmError("Our AI provider is busy right now. Please try again in a minute.");
     }
     throw e;
   }

@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/xai": "^5.0.26",
+    "@ai-sdk/groq": "^4.0.66",
     "@aws-sdk/client-s3": "^3.1153.0",
     "@aws-sdk/s3-request-presigner": "^3.1153.0",
     "@react-pdf/renderer": "^4.9.0",
