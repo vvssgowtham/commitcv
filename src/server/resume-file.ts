@@ -35,6 +35,19 @@ export function splitIntoColumns(items: StructuredTextItem[]): StructuredTextIte
   return spread(left) >= 3 && spread(right) >= 3 ? [left, right] : [items];
 }
 
+// pdf.js splits a word wherever the font run changes — ligature glyphs ("traf" "fi" "c.") and punctuation
+// often arrive as separate, touching fragments. Only a visible gap is a space; real spaces usually come
+// as their own " " fragment anyway.
+function joinLine(items: StructuredTextItem[]): string {
+  let out = "";
+  items.forEach((it, i) => {
+    const prev = items[i - 1];
+    if (prev && it.x - (prev.x + prev.width) > 0.15 * (it.fontSize || prev.fontSize || 10)) out += " ";
+    out += it.str;
+  });
+  return out.replace(/\s+/g, " ").trim();
+}
+
 export function columnToText(items: StructuredTextItem[]): string {
   const sorted = items.toSorted((a, b) => b.y - a.y || a.x - b.x); // top to bottom (PDF y grows upward), then left to right
   const lines: StructuredTextItem[][] = [];
@@ -44,7 +57,7 @@ export function columnToText(items: StructuredTextItem[]): string {
     else lines.push([item]);
   }
   return lines
-    .map((line) => line.toSorted((a, b) => a.x - b.x).map((it) => it.str).join(" ").replace(/\s+/g, " ").trim())
+    .map((line) => joinLine(line.toSorted((a, b) => a.x - b.x)))
     .filter(Boolean)
     .join("\n");
 }
@@ -126,7 +139,7 @@ export const PARSE_SYSTEM = `You convert a resume into structured data.
 - Copy facts exactly as written: names, titles, companies, dates, numbers, wording. Never add, infer, embellish, summarise or reword.
 - If something is not in the resume, use an empty string or an empty array.
 - Dates: "YYYY-MM" when month and year are written, "YYYY" when only the year is written, "" for "Present", "Current" or unknown.
-- Experience and project descriptions: one line per bullet or sentence as written, without bullet characters.
+- Experience and project descriptions: each bullet or sentence as written, separated by a newline character (\n) — never merged into one paragraph — without bullet characters.
 - Skills: each distinct skill the resume lists; category is the resume's own grouping heading, or "" if it has none.
 - A list of hyperlink URLs found in the document is given separately below the resume text — these are the
   real destination of links whose visible text may just be a label like "LinkedIn" or "GitHub". Match each

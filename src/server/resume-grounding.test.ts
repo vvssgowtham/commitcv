@@ -55,3 +55,17 @@ describe("groundBullets", () => {
 test("sourceLines strips bullet characters and blanks", () => {
   expect(sourceLines("• one\n\n- two\r\n* three")).toEqual(["one", "two", "three"]);
 });
+
+test("sourceLines splits a merged paragraph into sentences without breaking Node.js or 2,000+", () => {
+  expect(sourceLines("Built X with Node.js , serving 2,000+ users at a 96%+ success rate . Refactored APIs into Kafka. Led migration to Java 17.")).toEqual([
+    "Built X with Node.js, serving 2,000+ users at a 96%+ success rate.",
+    "Refactored APIs into Kafka.",
+    "Led migration to Java 17.",
+  ]);
+});
+
+test("groundBullets never cuts a long bullet mid-sentence — it falls back to the whole source line", () => {
+  const line = "Built a service with Kafka.";
+  const r = groundBullets([{ text: `Built a service with Kafka ${"and more ".repeat(40)}`, sourceLine: 0 }], [line], "", 5);
+  expect(r.bullets).toEqual([line]);
+});

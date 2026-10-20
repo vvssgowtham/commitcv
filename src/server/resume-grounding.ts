@@ -43,14 +43,19 @@ export function groundBullets(bullets: Bullet[], lines: string[], extras: string
     const line = lines[b.sourceLine];
     if (line === undefined || usedLines.has(b.sourceLine)) { dropped++; continue; }
     usedLines.add(b.sourceLine);
-    const text = b.text.trim().slice(0, 300);
-    if (text && isGrounded(text, `${line}\n${extras}`)) out.push(text);
+    const text = b.text.trim();
+    // Too long to be a bullet: use the user's own line whole rather than cutting the model's mid-sentence.
+    if (text && text.length <= 300 && isGrounded(text, `${line}\n${extras}`)) out.push(text);
     else { out.push(line); replaced++; }
     if (out.length === max) break;
   }
   return { bullets: out, replaced, dropped };
 }
 
-/** Split a free-text description into the lines the model may cite. */
+/** Split a free-text description into the lines the model may cite: one per line, and one per sentence
+ * when a line holds a whole paragraph — resume parsing often merges a role's bullets into one. */
 export const sourceLines = (text: string) =>
-  text.split(/\r?\n/).map((l) => l.replace(/^\s*[-*•·]\s*/, "").trim()).filter(Boolean);
+  text.split(/\r?\n/)
+    .flatMap((l) => l.split(/(?<=[.!?])\s+(?=[A-Z])/))
+    .map((l) => l.replace(/^\s*[-*•·]\s*/, "").replace(/\s+([,.;:!?])/g, "$1").trim())
+    .filter(Boolean);

@@ -33,6 +33,15 @@ describe("splitIntoColumns + columnToText (reading-order reconstruction)", () =>
     expect(columns.map(columnToText)).toEqual(["Skills\nPython\nSQL", "Software Engineer\nat Google\nLed a team of 4"]);
   });
 
+  test("joins touching fragments (ligatures, punctuation) and spaces only real gaps — as pdf.js splits them in a real resume", () => {
+    // Measured on a real resume: "traf" "fi" "c." touch (gap 0); real spaces are their own " " item.
+    const at = (str: string, x: number) => item(str, x, 700);
+    const line = [at("peak traf", 20), at("fi", 74), at("c.", 86), at(" ", 98), at("Twilio SDK", 104), at(", processing", 164)];
+    expect(columnToText(line)).toBe("peak traffic. Twilio SDK, processing");
+    // A PDF without explicit space items: a visible gap still becomes a space.
+    expect(columnToText([at("Jun", 20), at("2025", 42)])).toBe("Jun 2025");
+  });
+
   test("a single item sitting further right (e.g. a page number) doesn't get mistaken for a second column", () => {
     const page = [item("Experience", 20, 800), item("Software Engineer", 20, 780), item("5+ years", 20, 760), item("2", 500, 40)];
     expect(splitIntoColumns(page)).toHaveLength(1); // not enough vertical spread on the right to count as a real column
