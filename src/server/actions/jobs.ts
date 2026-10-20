@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { verifySession } from "@/lib/dal";
-import { analyzeAndSaveJob, DAILY_JOBS, jobsToday } from "@/server/jobs";
-import { fetchPostingText, LlmError } from "@/server/services/llm";
+import { analyzeAndSaveJob, DAILY_JOBS, fetchPostingText, jobsToday } from "@/server/jobs";
+import { LlmError } from "@/server/services/llm";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 

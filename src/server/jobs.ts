@@ -7,7 +7,30 @@ import type { Profile } from "@/lib/profile";
 import { evidenceKinds, groundAnalysis, type JobAnalysis, type OwnedIds } from "@/server/grounding";
 import { getProfile } from "@/server/profile";
 import { listRepos, type RepoRow } from "@/server/repos";
-import { structured } from "@/server/services/llm";
+import { extractReadableText, fetchPublicUrl, UnsafeUrlError } from "@/server/services/safe-fetch";
+import { LlmError, structured } from "@/server/services/llm";
+
+const POSTING_MAX_CHARS = 30_000;
+
+/**
+ * Fetch a job posting ourselves (never via an LLM's own web tool, so what we store is always the
+ * literal page text, not a model's rewrite or a different page it decided to visit instead).
+ */
+export async function fetchPostingText(url: string): Promise<string> {
+  const pasteInstead = new LlmError("We couldn't read that page. Paste the job description instead.");
+  let body: string;
+  let contentType: string;
+  try {
+    ({ body, contentType } = await fetchPublicUrl(url));
+  } catch (e) {
+    if (e instanceof UnsafeUrlError) throw pasteInstead;
+    throw e;
+  }
+  if (contentType && !contentType.includes("html") && !contentType.includes("text")) throw pasteInstead; // e.g. a PDF posting
+  const text = extractReadableText(body);
+  if (text.length < 200) throw pasteInstead; // login walls and empty shells
+  return text.slice(0, POSTING_MAX_CHARS);
+}
 
 const s = z.string();
 const requirement = z.object({ requirement: s, evidence: z.array(z.object({ kind: z.enum(evidenceKinds), id: s })) });
@@ -58,10 +81,7 @@ export async function analyzeAndSaveJob(userId: string, description: string, url
   const included = repos.filter((r) => r.included);
   const raw = await structured(analysisOutput, {
     system: SYSTEM,
-    content: [{
-      type: "text",
-      text: `<job_posting>\n${description}\n</job_posting>\n<candidate_data>\n${JSON.stringify(candidateData(profile, included))}\n</candidate_data>`,
-    }],
+    prompt: `<job_posting>\n${description}\n</job_posting>\n<candidate_data>\n${JSON.stringify(candidateData(profile, included))}\n</candidate_data>`,
   });
   const analysis = groundAnalysis(raw, ownedIds(profile, included));
   const [row] = await db.insert(jobs).values({
