@@ -1,4 +1,4 @@
-# Resumate AI
+# CommitCV
 
 Tailor an ATS-friendly resume to each job: paste a job description or URL, pull your best projects from GitHub, export a PDF.
 

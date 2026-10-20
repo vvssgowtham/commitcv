@@ -63,7 +63,7 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
         <div className="relative mx-auto max-w-[1100px] px-4 py-10 sm:px-8">
           <p className="font-mono text-xs font-medium tracking-wider text-vc-mute uppercase">GitHub projects</p>
           <h1 className="mt-2 text-[32px] leading-10 font-semibold tracking-[-1.28px]">Your repositories</h1>
-          <p className="mt-2 max-w-xl text-sm text-vc-body">Included repos can be picked for tailored resumes. We only read repos you granted the Resumate GitHub App access to.</p>
+          <p className="mt-2 max-w-xl text-sm text-vc-body">Included repos can be picked for tailored resumes. We only read repos you granted the CommitCV GitHub App access to.</p>
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="inline-flex h-8 items-center gap-2 rounded-md border border-vc-hairline bg-white px-2.5 text-sm">
               <Github className="size-4" /> {login} <span className="size-1.5 rounded-full bg-vc-link" aria-label="Connected" />
@@ -132,7 +132,7 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
           <div className="mt-10 rounded-xl border border-dashed border-vc-hairline bg-white p-10 text-center">
             <p className="text-base font-semibold">{syncing ? "Looking for repositories…" : "No repositories yet"}</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-vc-body">
-              Install the Resumate GitHub App and pick the repositories it may read. Access is read-only and you can change it any time.
+              Install the CommitCV GitHub App and pick the repositories it may read. Access is read-only and you can change it any time.
             </p>
             <a href={installUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex h-9 items-center gap-2 rounded-full bg-vc-ink px-4 text-sm font-medium text-white">
               <Github className="size-4" /> Choose repositories

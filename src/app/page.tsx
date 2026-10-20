@@ -13,7 +13,7 @@ const tickerJobs = [
 
 const faqs = [
   { q: "Do I need an existing resume?", a: "No. Upload one and we parse it, or fill a short guided form. Both become your profile — the single source every tailored resume is built from." },
-  { q: "Which GitHub repos can Resumate see?", a: "Only the ones you choose when installing our GitHub App, with read-only access. You can revoke it any time from GitHub settings." },
+  { q: "Which GitHub repos can CommitCV see?", a: "Only the ones you choose when installing our GitHub App, with read-only access. You can revoke it any time from GitHub settings." },
   { q: "Will the PDF pass applicant tracking systems?", a: "Yes. Every resume is single-column with standard section headings, real text (no images), and the job's keywords placed where they're true for you." },
   { q: "Can I paste a job link instead of the description?", a: "Yes. Paste a URL and we pull the description. If a site blocks it, paste the text instead." },
 ];
@@ -47,7 +47,7 @@ export default function Landing() {
               One profile.<br />A perfect resume <span className="relative isolate whitespace-nowrap">for every job<span aria-hidden className="absolute inset-x-0 bottom-1 -z-10 h-3 bg-jr-mint md:bottom-3 md:h-4" /></span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed font-light">
-              Paste a job link. Resumate reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in about a minute.
+              Paste a job link. CommitCV reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in about a minute.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
               <SignInButton className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">
@@ -163,7 +163,7 @@ export default function Landing() {
           <blockquote className="font-display text-[32px] leading-tight font-semibold">
             Tailored, never invented. If it isn’t in your profile or your code, it isn’t on your resume.
           </blockquote>
-          <figcaption className="mt-8 text-sm text-white/70">How Resumate writes every resume</figcaption>
+          <figcaption className="mt-8 text-sm text-white/70">How CommitCV writes every resume</figcaption>
         </figure>
       </section>
 
@@ -198,7 +198,7 @@ export default function Landing() {
       <footer className="px-4 py-16 text-sm font-medium text-jr-muted">
         <div className="mx-auto flex max-w-[1200px] flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <Logo />
-          <p>© 2026 Resumate AI</p>
+          <p>© 2026 CommitCV</p>
         </div>
       </footer>
     </div>
