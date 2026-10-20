@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Check, FileText, Link2, Plus, Sparkles } from "lucide-react";
 import { Github } from "@/components/github-icon";
+import { SignInButton } from "@/components/auth-buttons";
 import { Logo } from "@/components/logo";
 import { ScoreRing } from "@/components/score-ring";
 
@@ -30,8 +30,8 @@ export default function Landing() {
             <a href="#faq">FAQ</a>
           </div>
           <div className="flex items-center gap-4 text-sm font-semibold">
-            <Link href="/dashboard" className="hidden sm:inline">Sign in</Link>
-            <Link href="/onboarding" className="rounded-[18px] bg-black px-4 py-2 text-white">Get started</Link>
+            <SignInButton className="hidden sm:inline">Sign in</SignInButton>
+            <SignInButton className="rounded-[18px] bg-black px-4 py-2 text-white cursor-pointer">Get started</SignInButton>
           </div>
         </nav>
       </header>
@@ -50,9 +50,9 @@ export default function Landing() {
               Paste a job link. Resumate reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in under a minute.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link href="/onboarding" className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white">
+              <SignInButton className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">
                 <Github className="size-5" aria-hidden /> Continue with GitHub
-              </Link>
+              </SignInButton>
               <a href="#how" className="inline-flex items-center justify-center gap-2 px-4 py-4 font-semibold">
                 See how it works <ArrowRight className="size-4" aria-hidden />
               </a>
@@ -189,9 +189,9 @@ export default function Landing() {
       <section className="bg-jr-mint-canvas px-4 pb-24">
         <div className="mx-auto max-w-[1200px] text-center">
           <h2 className="font-display text-4xl font-bold md:text-5xl">Your next application, tailored in a minute.</h2>
-          <Link href="/onboarding" className="mt-10 inline-flex items-center gap-2 rounded-[36px] border border-black bg-jr-mint px-12 py-3 font-semibold text-black">
+          <SignInButton className="mt-10 inline-flex items-center gap-2 rounded-[36px] border border-black bg-jr-mint px-12 py-3 font-semibold text-black cursor-pointer">
             Try it free <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          </SignInButton>
         </div>
       </section>
 
@@ -212,7 +212,7 @@ function FeatureBand({ title, body, cta, reverse, children }: { title: string; b
         <div>
           <h2 className="font-display text-4xl leading-tight font-bold md:text-5xl">{title}</h2>
           <p className="mt-6 text-lg font-light">{body}</p>
-          <Link href="/onboarding" className="mt-8 inline-flex rounded-[28px] bg-black px-10 py-4 font-semibold text-white">{cta}</Link>
+          <SignInButton className="mt-8 inline-flex rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">{cta}</SignInButton>
         </div>
         <div className="rounded-[40px] rounded-tl-none bg-white p-6 shadow-jr-float">{children}</div>
       </div>

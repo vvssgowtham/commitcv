@@ -13,6 +13,13 @@ npm run db:migrate
 npm run dev
 ```
 
+## Tests
+
+```bash
+npm test                                              # unit tests
+TEST_DATABASE_URL=postgres://... npm test             # + integration tests (migrated DB)
+```
+
 - Schema: `src/db/schema.ts`. Resume upload and the manual form both populate `candidate_profiles` + section tables (single source of truth).
 - UI references per surface: `design/README.md`.
 

@@ -5,6 +5,12 @@ const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultN
 const userId = () => uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" });
 const profileId = () => uuid("profile_id").notNull().references(() => candidateProfiles.id, { onDelete: "cascade" });
 
+export const profileSourceType = pgEnum("profile_source_type", ["RESUME", "MANUAL", "GITHUB", "USER_EDIT"]);
+export const generationStatus = pgEnum("generation_status", ["pending", "ready", "failed"]);
+
+// Per-item provenance: re-importing a resume may only overwrite RESUME items, never MANUAL / USER_EDIT.
+const source = () => profileSourceType("source").notNull().default("MANUAL");
+
 // users / sessions / accounts follow Better Auth's core schema (camelCase keys are what the adapter expects).
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -79,6 +85,13 @@ export const githubRepositories = pgTable(
     url: text("url").notNull(),
     description: text("description"),
     languages: jsonb("languages").$type<Record<string, number>>(),
+    topics: jsonb("topics").$type<string[]>(),
+    readmeExcerpt: text("readme_excerpt"),
+    stars: integer("stars").notNull().default(0),
+    isPrivate: boolean("is_private").notNull().default(false),
+    pushedAt: timestamp("pushed_at", { withTimezone: true }),
+    included: boolean("included").notNull().default(true), // user can hide a repo from resume selection
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [unique().on(t.userId, t.githubRepoId)],
 );
@@ -89,9 +102,11 @@ export const resumeGenerations = pgTable("resume_generations", {
   userId: userId(),
   jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   sourceResumeId: uuid("source_resume_id").references(() => resumes.id, { onDelete: "set null" }), // null when built from the profile form
-  generatedContent: jsonb("generated_content").notNull(),
+  generatedContent: jsonb("generated_content"), // null until status = ready
   pdfFileKey: text("pdf_file_key"),
   atsAnalysis: jsonb("ats_analysis"),
+  status: generationStatus("status").notNull().default("pending"),
+  error: text("error"),
   createdAt: createdAt(),
 });
 
@@ -112,6 +127,9 @@ export const candidateProfiles = pgTable("candidate_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: userId().unique(),
   summary: text("summary"),
+  phone: text("phone"),
+  location: text("location"),
+  links: jsonb("links").$type<{ label: string; url: string }[]>().notNull().default([]),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -120,6 +138,7 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 export const candidateEducation = pgTable("candidate_education", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
+  source: source(),
   institution: text("institution").notNull(),
   degree: text("degree"),
   fieldOfStudy: text("field_of_study"),
@@ -132,6 +151,7 @@ export const candidateEducation = pgTable("candidate_education", {
 export const candidateExperience = pgTable("candidate_experience", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
+  source: source(),
   company: text("company").notNull(),
   jobTitle: text("job_title").notNull(),
   employmentType: text("employment_type"),
@@ -143,6 +163,7 @@ export const candidateExperience = pgTable("candidate_experience", {
 export const candidateProjects = pgTable("candidate_projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
+  source: source(),
   name: text("name").notNull(),
   description: text("description"),
   url: text("url"),
@@ -154,6 +175,7 @@ export const candidateSkills = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     profileId: profileId(),
+    source: source(),
     skill: text("skill").notNull(),
     category: text("category"),
   },
@@ -163,6 +185,7 @@ export const candidateSkills = pgTable(
 export const candidateCertifications = pgTable("candidate_certifications", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
+  source: source(),
   name: text("name").notNull(),
   issuingOrganization: text("issuing_organization"),
   issueDate: date("issue_date"),
@@ -172,13 +195,12 @@ export const candidateCertifications = pgTable("candidate_certifications", {
 export const candidateAwards = pgTable("candidate_awards", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: profileId(),
+  source: source(),
   name: text("name").notNull(),
   issuer: text("issuer"),
   date: date("date"),
   description: text("description"),
 });
-
-export const profileSourceType = pgEnum("profile_source_type", ["RESUME", "MANUAL", "GITHUB", "USER_EDIT"]);
 
 // Where profile data came from, e.g. RESUME → resumes.id, GITHUB → github_repositories.id.
 export const candidateProfileSources = pgTable("candidate_profile_sources", {

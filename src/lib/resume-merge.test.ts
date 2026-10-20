@@ -1,8 +1,9 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
-import { applyChanges, diffResume } from "./resume-merge.ts";
+import type { Profile } from "./mock-data";
+import { applyChanges, diffResume } from "./resume-merge";
 
-const base = () => ({
+const base = (): Profile => ({
   summary: "Old summary",
   contact: { phone: "", location: "", linkedin: "", github: "" },
   education: [],
@@ -32,8 +33,8 @@ test("adds new items, updates resume-sourced items, keeps user edits", () => {
   let n = 0;
   const next = applyChanges(base(), changes.filter((c) => c.kind !== "kept"), () => `new${n++}`);
   assert.equal(next.summary, "New summary");
-  assert.equal(next.experience.find((e) => e.id === "a").description, "new");
-  assert.equal(next.experience.find((e) => e.id === "b").description, "mine");
+  assert.equal(next.experience.find((e) => e.id === "a")!.description, "new");
+  assert.equal(next.experience.find((e) => e.id === "b")!.description, "mine");
   assert.equal(next.experience.length, 3);
   assert.deepEqual(next.skills.map((s) => s.skill), ["Go", "Kafka"]);
 });

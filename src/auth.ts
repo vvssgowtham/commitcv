@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
-import { accounts, sessions, users } from "@/db/schema";
+import { accounts, candidateProfiles, sessions, users } from "@/db/schema";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema: { user: users, session: sessions, account: accounts } }),
@@ -19,5 +19,9 @@ export const auth = betterAuth({
     storeStateStrategy: "cookie", // no verification table needed for OAuth-only sign-in
   },
   advanced: { database: { generateId: "uuid" } },
+  databaseHooks: {
+    // Every user gets exactly one (empty) profile, so later code never has to handle "no profile".
+    user: { create: { after: async (user) => { await db.insert(candidateProfiles).values({ userId: user.id }).onConflictDoNothing(); } } },
+  },
   plugins: [nextCookies()],
 });

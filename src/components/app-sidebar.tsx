@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FolderGit2, LayoutGrid, LogOut, Plus, UserRound } from "lucide-react";
+import { FolderGit2, LayoutGrid, Plus, UserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { user } from "@/lib/mock-data";
 
 // App shell — design/linear.md structure (light palette): surface ladder for active rows, lavender only on the primary action.
 
@@ -14,7 +13,7 @@ const nav = [
   { href: "/projects", label: "GitHub projects", icon: FolderGit2 },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ userMenu }: { userMenu: React.ReactNode }) {
   const path = usePathname();
   const active = (href: string) => path === href || (href === "/dashboard" && (path.startsWith("/jobs") || path.startsWith("/resumes")));
 
@@ -41,14 +40,7 @@ export function AppSidebar() {
       </nav>
 
       <div className="hidden items-center gap-3 border-t border-ln-hairline p-4 md:flex">
-        <span className="grid size-8 place-items-center rounded-full bg-ln-surface-3 text-xs font-medium">{user.name.split(" ").map((n) => n[0]).join("")}</span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm">{user.name}</p>
-          <p className="truncate text-xs text-ln-ink-subtle">{user.email}</p>
-        </div>
-        <Link href="/" aria-label="Sign out" className="rounded-md p-1.5 text-ln-ink-subtle hover:bg-ln-surface-2 hover:text-ln-ink">
-          <LogOut className="size-4" aria-hidden />
-        </Link>
+        {userMenu}
       </div>
     </aside>
   );
