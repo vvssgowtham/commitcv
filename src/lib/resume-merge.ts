@@ -1,7 +1,8 @@
 import type { ListKey, Profile } from "./profile";
 
 // Re-importing a resume must never clobber what the user typed: items they added (MANUAL) or edited
-// (USER_EDIT) are kept as-is; only items that came from a previous resume (RESUME) can be updated.
+// (USER_EDIT) are kept as-is; only items that came from a previous resume (RESUME) can be updated or
+// removed as a redundant duplicate of another row with the same identity.
 
 // Parser output: same fields as the profile, minus the ids and provenance we assign on apply.
 export type ParsedResume = { summary?: string; skills?: { skill: string; category: string }[] } & {
@@ -13,7 +14,8 @@ export type Change =
   | { id: string; kind: "add"; section: ListKey; label: string; item: Record<string, unknown> }
   | { id: string; kind: "update"; section: ListKey; label: string; targetId: string; item: Record<string, unknown> }
   | { id: string; kind: "skill"; label: string; skill: { skill: string; category: string } }
-  | { id: string; kind: "kept"; section: ListKey; label: string };
+  | { id: string; kind: "kept"; section: ListKey; label: string }
+  | { id: string; kind: "remove"; section: ListKey; label: string; targetId: string };
 
 // The parser sometimes folds a " — subtitle" (location, tagline) onto the institution/company/project
 // name and sometimes doesn't, across separate parses of what is otherwise the same real entry — strip
@@ -50,12 +52,27 @@ export function diffResume(profile: Profile, parsed: ParsedResume): Change[] {
     const existing = profile[section] as unknown as Record<string, unknown>[];
     for (const item of (parsed[section] ?? []) as unknown as Record<string, unknown>[]) {
       const key = norm(identity[section](item));
-      const match = existing.find((e) => norm(identity[section](e)) === key);
+      const matches = existing.filter((e) => norm(identity[section](e)) === key);
       const id = `${section}:${key}`;
-      if (!match) changes.push({ id, kind: "add", section, label: label[section](item), item });
-      else if (content(match) === content(item)) continue;
-      else if (match.source === "RESUME") changes.push({ id, kind: "update", section, label: label[section](item), targetId: match.id as string, item });
-      else changes.push({ id, kind: "kept", section, label: label[section](match) });
+      if (matches.length === 0) {
+        changes.push({ id, kind: "add", section, label: label[section](item), item });
+        continue;
+      }
+
+      // A user-owned row (MANUAL/USER_EDIT) is always the canonical survivor; only a RESUME row can be
+      // auto-updated. Any other RESUME row sharing this identity is a leftover duplicate — surface its
+      // removal so the next import heals data an earlier bug duplicated, instead of leaving it forever.
+      const protectedMatch = matches.find((m) => m.source !== "RESUME");
+      const primary = protectedMatch ?? matches[0];
+      if (content(primary) !== content(item)) {
+        if (!protectedMatch) changes.push({ id, kind: "update", section, label: label[section](item), targetId: primary.id as string, item });
+        else changes.push({ id, kind: "kept", section, label: label[section](primary) });
+      }
+      for (const dup of matches) {
+        if (dup !== primary && dup.source === "RESUME") {
+          changes.push({ id: `${id}:dup:${dup.id}`, kind: "remove", section, label: label[section](dup), targetId: dup.id as string });
+        }
+      }
     }
   }
 
@@ -77,6 +94,10 @@ export function applyChanges(profile: Profile, changes: Change[], newId: () => s
       const list = next[c.section] as unknown as Record<string, unknown>[];
       const i = list.findIndex((x) => x.id === c.targetId);
       list[i] = { ...c.item, id: c.targetId, source: "RESUME" };
+    } else if (c.kind === "remove") {
+      const list = next[c.section] as unknown as Record<string, unknown>[];
+      const i = list.findIndex((x) => x.id === c.targetId);
+      if (i !== -1) list.splice(i, 1);
     }
   }
   return next;
