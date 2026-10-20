@@ -1,17 +1,51 @@
-import { bigint, date, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date());
 const userId = () => uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" });
 const profileId = () => uuid("profile_id").notNull().references(() => candidateProfiles.id, { onDelete: "cascade" });
 
+// users / sessions / accounts follow Better Auth's core schema (camelCase keys are what the adapter expects).
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  authProviderId: text("auth_provider_id").notNull().unique(), // GitHub account id
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userId(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+// Provider identity + OAuth tokens (encrypted by Better Auth before storage).
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userId(),
+    providerId: text("provider_id").notNull(),
+    accountId: text("provider_account_id").notNull(), // GitHub user id
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [unique().on(t.providerId, t.accountId)],
+);
 
 // Original uploaded resume and its parsed content.
 export const resumes = pgTable("resumes", {

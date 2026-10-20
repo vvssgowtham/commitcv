@@ -1,4 +1,20 @@
 CREATE TYPE "public"."profile_source_type" AS ENUM('RESUME', 'MANUAL', 'GITHUB', 'USER_EDIT');--> statement-breakpoint
+CREATE TABLE "accounts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"provider_id" text NOT NULL,
+	"provider_account_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"id_token" text,
+	"access_token_expires_at" timestamp with time zone,
+	"refresh_token_expires_at" timestamp with time zone,
+	"scope" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "accounts_provider_id_provider_account_id_unique" UNIQUE("provider_id","provider_account_id")
+);
+--> statement-breakpoint
 CREATE TABLE "candidate_awards" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"profile_id" uuid NOT NULL,
@@ -124,16 +140,30 @@ CREATE TABLE "resumes" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE "sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"email" text NOT NULL,
-	"auth_provider_id" text NOT NULL,
+	"user_id" uuid NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "users_email_unique" UNIQUE("email"),
-	CONSTRAINT "users_auth_provider_id_unique" UNIQUE("auth_provider_id")
+	CONSTRAINT "sessions_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
+CREATE TABLE "users" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"image" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "users_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_awards" ADD CONSTRAINT "candidate_awards_profile_id_candidate_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."candidate_profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_certifications" ADD CONSTRAINT "candidate_certifications_profile_id_candidate_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."candidate_profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_education" ADD CONSTRAINT "candidate_education_profile_id_candidate_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."candidate_profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -149,4 +179,5 @@ ALTER TABLE "resume_generation_projects" ADD CONSTRAINT "resume_generation_proje
 ALTER TABLE "resume_generations" ADD CONSTRAINT "resume_generations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resume_generations" ADD CONSTRAINT "resume_generations_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."jobs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resume_generations" ADD CONSTRAINT "resume_generations_source_resume_id_resumes_id_fk" FOREIGN KEY ("source_resume_id") REFERENCES "public"."resumes"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "resumes" ADD CONSTRAINT "resumes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "resumes" ADD CONSTRAINT "resumes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
