@@ -11,7 +11,7 @@ describe("env", () => {
   // env() caches its result at module scope; reset the registry so each test gets a fresh cache.
   beforeEach(() => {
     Object.assign(process.env, BASE);
-    delete process.env.XAI_API_KEY;
+    delete process.env.GROQ_API_KEY;
     delete process.env.LLM_MODEL;
     vi.resetModules();
   });
@@ -20,20 +20,20 @@ describe("env", () => {
     Object.assign(process.env, original);
   });
 
-  test("requires XAI_API_KEY", async () => {
+  test("requires GROQ_API_KEY", async () => {
     const { env } = await import("./env");
-    expect(() => env()).toThrow(/XAI_API_KEY/);
-    process.env.XAI_API_KEY = "xai-x";
+    expect(() => env()).toThrow(/GROQ_API_KEY/);
+    process.env.GROQ_API_KEY = "gsk_x";
     expect(() => env()).not.toThrow();
   });
 
-  test("defaults LLM_MODEL to grok-4.7", async () => {
+  test("defaults LLM_MODEL to openai/gpt-oss-120b", async () => {
     const { env } = await import("./env");
-    process.env.XAI_API_KEY = "xai-x";
-    expect(env().LLM_MODEL).toBe("grok-4.7");
-    process.env.LLM_MODEL = "grok-4.3";
+    process.env.GROQ_API_KEY = "gsk_x";
+    expect(env().LLM_MODEL).toBe("openai/gpt-oss-120b");
+    process.env.LLM_MODEL = "llama-3.3-70b-versatile";
     vi.resetModules();
     const { env: env2 } = await import("./env");
-    expect(env2().LLM_MODEL).toBe("grok-4.3");
+    expect(env2().LLM_MODEL).toBe("llama-3.3-70b-versatile");
   });
 });
