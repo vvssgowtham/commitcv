@@ -46,14 +46,14 @@ describe.skipIf(!url)("job analysis", () => {
       ],
       niceToHave: [],
       keywords: ["Go", "Kafka"],
-      recommendedRepos: [{ repo: "excluded", reason: "x" }, { repo: "not-a-repo-of-theirs", reason: "x" }, { repo: "myPortfolio", reason: "x" }, { repo: "Kept", reason: "Go service" }],
+      recommendedRepos: [{ repo: "excluded", reason: "x" }, { repo: "not-a-repo-of-theirs", reason: "x" }, { repo: "myPortfolio", reason: "Portfolio" }, { repo: "Kept", reason: "Go service" }],
     });
 
     const jobId = await analyzeAndSaveJob(userId, "We need Go and Kafka. ".repeat(5), null);
     const job = (await getJob(userId, jobId))!;
     expect(job.analysis.required.map((r) => r.matched)).toEqual([true, false]);
     expect(job.analysis.matchScore).toBe(50);
-    expect(job.recommended.map((r) => r.name)).toEqual(["kept"]);
+    expect(job.recommended.map((r) => r.name)).toEqual(["myPortfolio", "kept"]);
     expect((await listJobs(userId))[0]).toMatchObject({ id: jobId, title: "Backend Engineer", matchScore: 50, status: null });
     expect(await getJob(userId, "not-a-uuid")).toBeNull();
   });
@@ -69,17 +69,16 @@ describe("repo helpers", () => {
     expect(sameWork(p("DocuTalk — Chat-with-PDF (RAG)", "http://pdfchat.vvssgowtham.in/"), "pdfChat-frontend")).toBe(true);
     expect(sameWork(p("DocuTalk", "http://pdfchat.vvssgowtham.in/"), "wacrm")).toBe(false);
     expect(sameWork(p("Mini Cut"), "mini-cut-2")).toBe(false);
+    expect(sameWork(p("Mini Cut", "https://minicardboard.vvssgowtham.in/"), "vvssgowtham")).toBe(false); // personal domain
+    expect(sameWork(p("DocuTalk", "https://github.com/vvssgowtham/pdfChat-backend"), "pdfChat-frontend")).toBe(true);
+    expect(sameWork(p("DocuTalk", "https://github.com/vvssgowtham/pdfChat-backend"), "vvssgowtham")).toBe(false);
   });
 
-  test("worthFeaturing drops profile READMEs, portfolios, learning repos and duplicates of profile projects", async () => {
-    const { worthFeaturing } = await import("./jobs");
-    const r = (name: string, description: string | null = null) => ({ name, description, url: `https://github.com/vvssgowtham/${name}` });
+  test("duplicatesProject only flags repos already on the resume as a project — portfolios and learning repos stay", async () => {
+    const { duplicatesProject } = await import("./jobs");
     const projects = [{ name: "Mini Cut — Video Editor", url: "https://minicardboard.vvssgowtham.in/" }];
-    expect(worthFeaturing(r("wacrm", "Self-hostable CRM"), projects)).toBe(true);
-    expect(worthFeaturing(r("vvssgowtham"), projects)).toBe(false);
-    expect(worthFeaturing(r("SDEPortfolio"), projects)).toBe(false);
-    expect(worthFeaturing(r("devops", "learning devops"), projects)).toBe(false);
-    expect(worthFeaturing(r("mini-cut"), projects)).toBe(false);
+    expect(duplicatesProject("mini-cut", projects)).toBe(true);
+    for (const name of ["wacrm", "vvssgowtham", "SDEPortfolio", "devops", "Visualize"]) expect(duplicatesProject(name, projects)).toBe(false);
   });
 
   test("readmeGist takes the first prose line, skipping headings, badges and HTML", async () => {
