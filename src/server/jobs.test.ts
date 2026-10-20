@@ -33,9 +33,8 @@ describe.skipIf(!url)("job analysis", () => {
     const profile = await writeProfile(userId, { ...(await getProfile(userId)), skills: [{ id: "x", source: "MANUAL", skill: "Go", category: "Languages" }] }, "user");
     const go = profile.skills[0].id;
     const base = { name: "r", url: "https://github.com/me/r", description: null, languages: {}, topics: [], readmeExcerpt: null, stars: 0, isPrivate: false, pushedAt: null };
-    await saveSyncedRepos(userId, [{ ...base, githubRepoId: 1, name: "kept" }, { ...base, githubRepoId: 2, name: "excluded" }]);
+    await saveSyncedRepos(userId, [{ ...base, githubRepoId: 1, name: "kept" }, { ...base, githubRepoId: 2, name: "excluded" }, { ...base, githubRepoId: 3, name: "myPortfolio" }]);
     const repos = await listRepos(userId);
-    const kept = repos.find((r) => r.name === "kept")!;
     const excluded = repos.find((r) => r.name === "excluded")!;
     await setRepoIncluded(userId, excluded.id, false);
 
@@ -47,7 +46,7 @@ describe.skipIf(!url)("job analysis", () => {
       ],
       niceToHave: [],
       keywords: ["Go", "Kafka"],
-      recommendedRepos: [{ repoId: excluded.id, reason: "x" }, { repoId: kept.id, reason: "Go service" }],
+      recommendedRepos: [{ repo: "excluded", reason: "x" }, { repo: "not-a-repo-of-theirs", reason: "x" }, { repo: "myPortfolio", reason: "x" }, { repo: "Kept", reason: "Go service" }],
     });
 
     const jobId = await analyzeAndSaveJob(userId, "We need Go and Kafka. ".repeat(5), null);
@@ -60,23 +59,32 @@ describe.skipIf(!url)("job analysis", () => {
   });
 });
 
-describe("shortlistRepos", () => {
-  const repo = (name: string, extra: { description?: string; languages?: Record<string, number>; topics?: string[] } = {}) =>
-    ({ name, description: extra.description ?? null, languages: extra.languages ?? {}, topics: extra.topics ?? [] });
-
-  test("keeps every repo when there are few", async () => {
-    const { shortlistRepos } = await import("./jobs");
-    const repos = [repo("a"), repo("b")];
-    expect(shortlistRepos(repos, "anything")).toEqual(repos);
+describe("repo helpers", () => {
+  test("sameWork matches a repo to the profile project it is, and nothing else", async () => {
+    const { sameWork } = await import("./jobs");
+    const p = (name: string, url = "") => ({ name, url });
+    expect(sameWork(p("Mini Cut — Browser Video Editor with an AI Edit Agent"), "mini-cut")).toBe(true);
+    expect(sameWork(p("ConnectMeIndia"), "connect_me_india")).toBe(true);
+    expect(sameWork(p("DocuTalk — Chat-with-PDF (RAG)", "http://pdfchat.vvssgowtham.in/"), "pdfChat-backend")).toBe(true);
+    expect(sameWork(p("DocuTalk — Chat-with-PDF (RAG)", "http://pdfchat.vvssgowtham.in/"), "pdfChat-frontend")).toBe(true);
+    expect(sameWork(p("DocuTalk", "http://pdfchat.vvssgowtham.in/"), "wacrm")).toBe(false);
+    expect(sameWork(p("Mini Cut"), "mini-cut-2")).toBe(false);
   });
 
-  test("keeps the 12 most relevant to the posting, ties in original (recency) order", async () => {
-    const { shortlistRepos } = await import("./jobs");
-    const filler = Array.from({ length: 20 }, (_, i) => repo(`old-${i}`));
-    const relevant = repo("payments-api", { description: "Kafka event pipeline", languages: { Go: 1 }, topics: ["postgres"] });
-    const out = shortlistRepos([...filler, relevant], "Backend engineer: Go, Kafka, Postgres, payments.");
-    expect(out).toHaveLength(12);
-    expect(out[0]).toBe(relevant);
-    expect(out[1]).toBe(filler[0]);
+  test("worthFeaturing drops profile READMEs, portfolios, learning repos and duplicates of profile projects", async () => {
+    const { worthFeaturing } = await import("./jobs");
+    const r = (name: string, description: string | null = null) => ({ name, description, url: `https://github.com/vvssgowtham/${name}` });
+    const projects = [{ name: "Mini Cut — Video Editor", url: "https://minicardboard.vvssgowtham.in/" }];
+    expect(worthFeaturing(r("wacrm", "Self-hostable CRM"), projects)).toBe(true);
+    expect(worthFeaturing(r("vvssgowtham"), projects)).toBe(false);
+    expect(worthFeaturing(r("SDEPortfolio"), projects)).toBe(false);
+    expect(worthFeaturing(r("devops", "learning devops"), projects)).toBe(false);
+    expect(worthFeaturing(r("mini-cut"), projects)).toBe(false);
+  });
+
+  test("readmeGist takes the first prose line, skipping headings, badges and HTML", async () => {
+    const { readmeGist } = await import("./jobs");
+    expect(readmeGist("# Title\n[![ci](x)](y)\n<p align=center>\nA chat app that answers questions about your PDFs.\nMore.")).toBe("A chat app that answers questions about your PDFs.");
+    expect(readmeGist(null)).toBe("");
   });
 });

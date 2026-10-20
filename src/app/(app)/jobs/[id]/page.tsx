@@ -4,7 +4,7 @@ import { AlertCircle, ArrowLeft, Check, ExternalLink, Minus } from "lucide-react
 import { ScoreRing } from "@/components/score-ring";
 import { verifySession } from "@/lib/dal";
 import type { Requirement } from "@/server/grounding";
-import { getJob } from "@/server/jobs";
+import { getJob, worthFeaturing } from "@/server/jobs";
 import { getProfile } from "@/server/profile";
 import { listRepos } from "@/server/repos";
 import { GeneratePanel } from "./generate-panel";
@@ -90,7 +90,7 @@ export default async function JobPage({ params }: PageProps<"/jobs/[id]">) {
                 </ul>
               </Panel>
             )}
-            <GeneratePanel jobId={job.id} repos={job.recommended.map((r) => ({ id: r.id, name: r.name, reason: r.reason }))} latestGenerationId={job.latestGeneration?.status === "ready" ? job.latestGeneration.id : null} />
+            <GeneratePanel jobId={job.id} profileProjects={profile.projects.map((p) => p.name)} repos={job.recommended.filter((r) => worthFeaturing(r, profile.projects)).map((r) => ({ id: r.id, name: r.name, reason: r.reason }))} latestGenerationId={job.latestGeneration?.status === "ready" ? job.latestGeneration.id : null} />
           </aside>
         </div>
       </div>

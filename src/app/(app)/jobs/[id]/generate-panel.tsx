@@ -8,7 +8,7 @@ import { createResume } from "@/server/actions/generate";
 
 type PanelRepo = { id: string; name: string; reason: string };
 
-export function GeneratePanel({ jobId, repos, latestGenerationId }: { jobId: string; repos: PanelRepo[]; latestGenerationId: string | null }) {
+export function GeneratePanel({ jobId, profileProjects, repos, latestGenerationId }: { jobId: string; profileProjects: string[]; repos: PanelRepo[]; latestGenerationId: string | null }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set(repos.map((r) => r.id)));
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,10 @@ export function GeneratePanel({ jobId, repos, latestGenerationId }: { jobId: str
   return (
     <section className="rounded-xl border border-ln-hairline bg-ln-surface-1 p-5">
       <h2 className="text-sm font-medium text-ln-ink-muted">Projects to feature</h2>
-      <p className="mt-1 text-xs text-ln-ink-subtle">Picked from your GitHub for this role. Untick to leave one out.</p>
+      <p className="mt-1 text-xs text-ln-ink-subtle">
+        {profileProjects.length > 0 && <>Your profile projects ({profileProjects.map((n) => n.replace(/\s[-–—]\s.*$/, "")).join(", ")}) are always considered. </>}
+        {repos.length > 0 && "GitHub repos that also fit this role — untick to leave one out."}
+      </p>
       <ul className="mt-4 space-y-2">
         {repos.map((r) => (
           <li key={r.id}>
@@ -47,7 +50,7 @@ export function GeneratePanel({ jobId, repos, latestGenerationId }: { jobId: str
         ))}
       </ul>
 
-      {repos.length === 0 && <p className="mt-4 text-sm text-ln-ink-subtle">None of your included repositories clearly fits this role. The resume will use projects from your profile.</p>}
+      {repos.length === 0 && <p className="mt-4 text-sm text-ln-ink-subtle">No extra GitHub repos clearly add to this role, so the resume will use projects from your profile.</p>}
       {error && <p role="alert" className="mt-4 rounded-lg border border-[#f3c4c4] bg-[#fdf3f3] px-3 py-2 text-sm text-[#a31b1b]">{error}</p>}
       <button onClick={generate} disabled={busy}
         className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ln-primary px-3.5 py-2.5 text-sm font-medium text-white hover:bg-ln-primary-hover disabled:opacity-50">
