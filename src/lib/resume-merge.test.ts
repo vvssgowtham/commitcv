@@ -43,3 +43,17 @@ test("identical resume produces no changes", () => {
   const p = base();
   assert.deepEqual(diffResume(p, { summary: p.summary, experience: [{ ...p.experience[0] }] }), []);
 });
+
+test("a re-parsed subtitle appended to institution/project name isn't a new entry", () => {
+  const p = base();
+  p.education = [{ id: "e", institution: "Acme University", degree: "BTech", fieldOfStudy: "CS", startDate: "2020-01", endDate: "2024-01", grade: "", description: "", source: "RESUME" }];
+  p.projects = [{ id: "pr", name: "DocuTalk", description: "RAG pipeline", url: "", technologies: [], source: "RESUME" }];
+
+  const changes = diffResume(p, {
+    education: [{ institution: "Acme University — Hyderabad, India", degree: "BTech", fieldOfStudy: "CS", startDate: "2020-01", endDate: "2024-01", grade: "", description: "" }],
+    projects: [{ name: "DocuTalk — Chat-with-PDF (RAG)", description: "RAG pipeline", url: "", technologies: [] }],
+  });
+
+  assert.deepEqual(changes.map((c) => c.kind).sort(), ["update", "update"]);
+  assert.deepEqual(changes.map((c) => (c as { targetId: string }).targetId).sort(), ["e", "pr"]);
+});

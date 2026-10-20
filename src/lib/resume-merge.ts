@@ -15,12 +15,17 @@ export type Change =
   | { id: string; kind: "skill"; label: string; skill: { skill: string; category: string } }
   | { id: string; kind: "kept"; section: ListKey; label: string };
 
+// The parser sometimes folds a " — subtitle" (location, tagline) onto the institution/company/project
+// name and sometimes doesn't, across separate parses of what is otherwise the same real entry — strip
+// it so identity matching isn't fooled by that formatting noise.
+const stripSubtitle = (x: unknown) => (typeof x === "string" ? x.replace(/\s[-–—]\s.*$/, "") : x);
+
 const identity: Record<ListKey, (x: Record<string, unknown>) => string> = {
-  experience: (x) => `${x.company}|${x.jobTitle}`,
-  education: (x) => `${x.institution}|${x.degree}`,
-  projects: (x) => `${x.name}`,
-  certifications: (x) => `${x.name}`,
-  awards: (x) => `${x.name}`,
+  experience: (x) => `${stripSubtitle(x.company)}|${x.jobTitle}`,
+  education: (x) => `${stripSubtitle(x.institution)}|${x.degree}`,
+  projects: (x) => `${stripSubtitle(x.name)}`,
+  certifications: (x) => `${stripSubtitle(x.name)}`,
+  awards: (x) => `${stripSubtitle(x.name)}`,
 };
 
 const label: Record<ListKey, (x: Record<string, unknown>) => string> = {
