@@ -13,6 +13,5 @@ npm run db:migrate
 npm run dev
 ```
 
-- Schema: `src/db/schema.ts` — resume sections share one shape, `src/lib/resume.ts`.
-- `resume_intake` holds the form data for users without an existing resume.
+- Schema: `src/db/schema.ts`. Resume upload and the manual form both populate `candidate_profiles` + section tables (single source of truth).
 - UI references per surface: `design/README.md`.
