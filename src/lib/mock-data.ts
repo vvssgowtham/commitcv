@@ -200,3 +200,36 @@ export const generationForJob = (jobId: string) => generations.find((g) => g.job
 
 export const fmtMonth = (ym: string | null) =>
   ym ? new Date(`${ym}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Present";
+
+// shortcut: what any re-uploaded resume "parses" to; replace with the real parser output.
+export const reparsedResume = {
+  summary:
+    "Backend-leaning full-stack engineer with 4+ years building data-heavy products in TypeScript, Go and Python. Cut API latency 60% and moved 40 batch jobs to event-driven workers on AWS.",
+  experience: [
+    {
+      company: "Aarambha Invest",
+      jobTitle: "Software Engineer II",
+      employmentType: "Full-time",
+      startDate: "2023-01",
+      endDate: null as string | null,
+      description:
+        "Built portfolio analytics platform in Next.js and FastAPI serving 20k+ users\nReduced p95 API latency from 900ms to 350ms with Redis caching and query rewrites\nLed migration of 40 cron jobs to event-driven workers on AWS SQS and Kafka",
+    },
+    {
+      company: "Finlytics",
+      jobTitle: "Software Engineer",
+      employmentType: "Full-time",
+      startDate: "2020-07",
+      endDate: "2022-11" as string | null,
+      description: "Built React dashboards for real-time market data",
+    },
+  ],
+  certifications: [
+    { name: "Certified Kubernetes Application Developer", issuingOrganization: "CNCF", issueDate: "2025-03", credentialUrl: "" },
+  ],
+  skills: [
+    { skill: "Kafka", category: "Data" },
+    { skill: "Kubernetes", category: "Cloud" },
+    { skill: "TypeScript", category: "Languages" },
+  ],
+};
