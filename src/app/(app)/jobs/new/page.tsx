@@ -2,28 +2,37 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, Link2, Loader2, Sparkles, TextCursorInput } from "lucide-react";
+import { Link2, Loader2, Sparkles, TextCursorInput } from "lucide-react";
+import { createJob } from "@/server/actions/jobs";
 
 // New application — design/linear.md surfaces + pill tabs, design/jobright.md mint for AI progress.
 
-const steps = ["Fetching job description", "Extracting requirements & keywords", "Matching against your profile", "Ranking your GitHub projects"];
+const steps = ["Reading the job description", "Extracting requirements & keywords", "Matching them against your profile", "Ranking your GitHub projects"];
 
 export default function NewJob() {
   const router = useRouter();
   const [tab, setTab] = useState<"url" | "text">("url");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
-  const [step, setStep] = useState(-1);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const value = tab === "url" ? url.trim() : text.trim();
   const valid = tab === "url" ? URL.canParse(value) : value.length >= 50;
 
-  function analyze(e: React.FormEvent) {
+  async function analyze(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) return;
-    // shortcut: simulated analysis that always lands on mock job j1; replace with the real analyze call.
-    steps.forEach((_, i) => setTimeout(() => setStep(i), 300 + i * 650));
-    setTimeout(() => router.push("/jobs/j1"), 300 + steps.length * 650);
+    setBusy(true);
+    setError("");
+    const res = await createJob(tab === "url" ? { url: value } : { text: value });
+    if (!res.ok) {
+      setBusy(false);
+      setError(res.error);
+      if (tab === "url") setTab("text"); // most fetch failures are fixed by pasting
+      return;
+    }
+    router.push(`/jobs/${res.data.jobId}`);
   }
 
   return (
@@ -33,21 +42,14 @@ export default function NewJob() {
         <h1 className="mt-1 text-[28px] leading-tight font-semibold tracking-[-0.6px]">What are you applying for?</h1>
         <p className="mt-2 text-ln-ink-subtle">Paste a job link or the full description. We’ll extract what matters and match it to your profile.</p>
 
-        {step >= 0 ? (
+        {busy ? (
           <div className="mt-8 rounded-xl border border-ln-hairline bg-ln-surface-1 p-6" aria-live="polite">
-            <p className="flex items-center gap-2 text-sm font-medium"><Sparkles className="size-4 text-ln-primary" aria-hidden /> Analyzing</p>
-            <ul className="mt-5 space-y-3 text-sm">
-              {steps.map((s, i) => (
-                <li key={s} className={`flex items-center gap-3 ${i > step + 1 ? "text-ln-ink-tertiary" : i > step ? "text-ln-ink-muted" : ""}`}>
-                  {i <= step ? (
-                    <span className="grid size-5 place-items-center rounded-full bg-jr-mint text-black"><Check className="size-3" aria-hidden /></span>
-                  ) : i === step + 1 ? (
-                    <Loader2 className="size-5 animate-spin text-ln-ink-subtle" aria-hidden />
-                  ) : (
-                    <span className="size-5 rounded-full border border-ln-hairline-strong" />
-                  )}
-                  {s}
-                </li>
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Loader2 className="size-4 animate-spin text-ln-primary" aria-hidden /> Analyzing — this usually takes under a minute
+            </p>
+            <ul className="mt-5 space-y-3 text-sm text-ln-ink-subtle">
+              {steps.map((s) => (
+                <li key={s} className="flex items-center gap-3"><Sparkles className="size-4 text-ln-ink-tertiary" aria-hidden />{s}</li>
               ))}
             </ul>
           </div>
@@ -80,6 +82,7 @@ export default function NewJob() {
               )}
             </div>
 
+            {error && <p role="alert" className="mt-4 rounded-lg border border-[#f3c4c4] bg-[#fdf3f3] px-3 py-2 text-sm text-[#a31b1b]">{error}</p>}
             <div className="mt-6 flex justify-end">
               <button type="submit" disabled={!valid} className="inline-flex items-center gap-2 rounded-lg bg-ln-primary px-3.5 py-2 text-sm font-medium text-white hover:bg-ln-primary-hover disabled:cursor-not-allowed disabled:opacity-40">
                 <Sparkles className="size-4" aria-hidden /> Analyze job
