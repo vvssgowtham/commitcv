@@ -59,3 +59,24 @@ describe.skipIf(!url)("job analysis", () => {
     expect(await getJob(userId, "not-a-uuid")).toBeNull();
   });
 });
+
+describe("shortlistRepos", () => {
+  const repo = (name: string, extra: { description?: string; languages?: Record<string, number>; topics?: string[] } = {}) =>
+    ({ name, description: extra.description ?? null, languages: extra.languages ?? {}, topics: extra.topics ?? [] });
+
+  test("keeps every repo when there are few", async () => {
+    const { shortlistRepos } = await import("./jobs");
+    const repos = [repo("a"), repo("b")];
+    expect(shortlistRepos(repos, "anything")).toEqual(repos);
+  });
+
+  test("keeps the 12 most relevant to the posting, ties in original (recency) order", async () => {
+    const { shortlistRepos } = await import("./jobs");
+    const filler = Array.from({ length: 20 }, (_, i) => repo(`old-${i}`));
+    const relevant = repo("payments-api", { description: "Kafka event pipeline", languages: { Go: 1 }, topics: ["postgres"] });
+    const out = shortlistRepos([...filler, relevant], "Backend engineer: Go, Kafka, Postgres, payments.");
+    expect(out).toHaveLength(12);
+    expect(out[0]).toBe(relevant);
+    expect(out[1]).toBe(filler[0]);
+  });
+});

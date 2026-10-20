@@ -42,6 +42,7 @@ export async function structured<S extends z.ZodType>(schema: S, { system, promp
     if (NoObjectGeneratedError.isInstance(e)) throw new LlmError("Couldn't read the result. Please try again.");
     if (APICallError.isInstance(e)) {
       if (e.statusCode === 401 || e.statusCode === 403) throw new LlmError("The AI provider rejected our API key. Check GROQ_API_KEY.");
+      if (e.statusCode === 413) throw new LlmError("That's more text than our AI provider's current limit allows. Try a shorter job description.");
       if (e.isRetryable || e.statusCode === 429) throw new LlmError("Our AI provider is busy right now. Please try again in a minute.");
       if (e.data && typeof e.data === "object" && "error" in e.data) {
         const msg = String((e.data as { error?: { message?: string } }).error?.message ?? "");
