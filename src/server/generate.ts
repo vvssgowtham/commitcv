@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { resumeGenerationProjects, resumeGenerations, resumes, users } from "@/db/schema";
 import type { Profile } from "@/lib/profile";
 import type { JobAnalysis } from "@/server/grounding";
-import { getJob } from "@/server/jobs";
+import { duplicatesProject, getJob } from "@/server/jobs";
 import { getProfile } from "@/server/profile";
 import { listRepos, type RepoRow } from "@/server/repos";
 import { groundBullets, isGrounded, sourceLines, type Bullet } from "@/server/resume-grounding";
@@ -167,8 +167,9 @@ export async function generateResume(userId: string, jobId: string, repoIds: str
       getProfile(userId), listRepos(userId),
       db.query.users.findFirst({ where: eq(users.id, userId), columns: { name: true, email: true } }),
     ]);
-    // Only repos the user both selected on the job page and keeps included.
-    const repos = allRepos.filter((r) => r.included && repoIds.includes(r.id));
+    // Only repos the user both selected on the job page and keeps included, and never one that is the
+    // same work as a profile project — that would list it twice.
+    const repos = allRepos.filter((r) => r.included && repoIds.includes(r.id) && !duplicatesProject(r.name, profile.projects));
     const analysis: JobAnalysis = job.analysis;
     const candidate = {
       summary: profile.summary,

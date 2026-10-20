@@ -33,9 +33,8 @@ describe.skipIf(!url)("job analysis", () => {
     const profile = await writeProfile(userId, { ...(await getProfile(userId)), skills: [{ id: "x", source: "MANUAL", skill: "Go", category: "Languages" }] }, "user");
     const go = profile.skills[0].id;
     const base = { name: "r", url: "https://github.com/me/r", description: null, languages: {}, topics: [], readmeExcerpt: null, stars: 0, isPrivate: false, pushedAt: null };
-    await saveSyncedRepos(userId, [{ ...base, githubRepoId: 1, name: "kept" }, { ...base, githubRepoId: 2, name: "excluded" }]);
+    await saveSyncedRepos(userId, [{ ...base, githubRepoId: 1, name: "kept" }, { ...base, githubRepoId: 2, name: "excluded" }, { ...base, githubRepoId: 3, name: "myPortfolio" }]);
     const repos = await listRepos(userId);
-    const kept = repos.find((r) => r.name === "kept")!;
     const excluded = repos.find((r) => r.name === "excluded")!;
     await setRepoIncluded(userId, excluded.id, false);
 
@@ -47,36 +46,44 @@ describe.skipIf(!url)("job analysis", () => {
       ],
       niceToHave: [],
       keywords: ["Go", "Kafka"],
-      recommendedRepos: [{ repoId: excluded.id, reason: "x" }, { repoId: kept.id, reason: "Go service" }],
+      recommendedRepos: [{ repo: "excluded", reason: "x" }, { repo: "not-a-repo-of-theirs", reason: "x" }, { repo: "myPortfolio", reason: "Portfolio" }, { repo: "Kept", reason: "Go service" }],
     });
 
     const jobId = await analyzeAndSaveJob(userId, "We need Go and Kafka. ".repeat(5), null);
     const job = (await getJob(userId, jobId))!;
     expect(job.analysis.required.map((r) => r.matched)).toEqual([true, false]);
     expect(job.analysis.matchScore).toBe(50);
-    expect(job.recommended.map((r) => r.name)).toEqual(["kept"]);
+    expect(job.recommended.map((r) => r.name)).toEqual(["myPortfolio", "kept"]);
     expect((await listJobs(userId))[0]).toMatchObject({ id: jobId, title: "Backend Engineer", matchScore: 50, status: null });
     expect(await getJob(userId, "not-a-uuid")).toBeNull();
   });
 });
 
-describe("shortlistRepos", () => {
-  const repo = (name: string, extra: { description?: string; languages?: Record<string, number>; topics?: string[] } = {}) =>
-    ({ name, description: extra.description ?? null, languages: extra.languages ?? {}, topics: extra.topics ?? [] });
-
-  test("keeps every repo when there are few", async () => {
-    const { shortlistRepos } = await import("./jobs");
-    const repos = [repo("a"), repo("b")];
-    expect(shortlistRepos(repos, "anything")).toEqual(repos);
+describe("repo helpers", () => {
+  test("sameWork matches a repo to the profile project it is, and nothing else", async () => {
+    const { sameWork } = await import("./jobs");
+    const p = (name: string, url = "") => ({ name, url });
+    expect(sameWork(p("Mini Cut — Browser Video Editor with an AI Edit Agent"), "mini-cut")).toBe(true);
+    expect(sameWork(p("ConnectMeIndia"), "connect_me_india")).toBe(true);
+    expect(sameWork(p("DocuTalk — Chat-with-PDF (RAG)", "http://pdfchat.vvssgowtham.in/"), "pdfChat-backend")).toBe(true);
+    expect(sameWork(p("DocuTalk — Chat-with-PDF (RAG)", "http://pdfchat.vvssgowtham.in/"), "pdfChat-frontend")).toBe(true);
+    expect(sameWork(p("DocuTalk", "http://pdfchat.vvssgowtham.in/"), "wacrm")).toBe(false);
+    expect(sameWork(p("Mini Cut"), "mini-cut-2")).toBe(false);
+    expect(sameWork(p("Mini Cut", "https://minicardboard.vvssgowtham.in/"), "vvssgowtham")).toBe(false); // personal domain
+    expect(sameWork(p("DocuTalk", "https://github.com/vvssgowtham/pdfChat-backend"), "pdfChat-frontend")).toBe(true);
+    expect(sameWork(p("DocuTalk", "https://github.com/vvssgowtham/pdfChat-backend"), "vvssgowtham")).toBe(false);
   });
 
-  test("keeps the 12 most relevant to the posting, ties in original (recency) order", async () => {
-    const { shortlistRepos } = await import("./jobs");
-    const filler = Array.from({ length: 20 }, (_, i) => repo(`old-${i}`));
-    const relevant = repo("payments-api", { description: "Kafka event pipeline", languages: { Go: 1 }, topics: ["postgres"] });
-    const out = shortlistRepos([...filler, relevant], "Backend engineer: Go, Kafka, Postgres, payments.");
-    expect(out).toHaveLength(12);
-    expect(out[0]).toBe(relevant);
-    expect(out[1]).toBe(filler[0]);
+  test("duplicatesProject only flags repos already on the resume as a project — portfolios and learning repos stay", async () => {
+    const { duplicatesProject } = await import("./jobs");
+    const projects = [{ name: "Mini Cut — Video Editor", url: "https://minicardboard.vvssgowtham.in/" }];
+    expect(duplicatesProject("mini-cut", projects)).toBe(true);
+    for (const name of ["wacrm", "vvssgowtham", "SDEPortfolio", "devops", "Visualize"]) expect(duplicatesProject(name, projects)).toBe(false);
+  });
+
+  test("readmeGist takes the first prose line, skipping headings, badges and HTML", async () => {
+    const { readmeGist } = await import("./jobs");
+    expect(readmeGist("# Title\n[![ci](x)](y)\n<p align=center>\nA chat app that answers questions about your PDFs.\nMore.")).toBe("A chat app that answers questions about your PDFs.");
+    expect(readmeGist(null)).toBe("");
   });
 });
