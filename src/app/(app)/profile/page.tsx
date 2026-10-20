@@ -1,6 +1,8 @@
 import { ProfileEditor } from "@/components/profile-editor";
-import { profile, user } from "@/lib/mock-data";
+import { verifySession } from "@/lib/dal";
+import { getProfile } from "@/server/profile";
 
-export default function ProfilePage() {
-  return <ProfileEditor initial={profile} name={user.name} email={user.email} mode="edit" />;
+export default async function ProfilePage() {
+  const { user } = await verifySession();
+  return <ProfileEditor initial={await getProfile(user.id)} name={user.name} email={user.email} mode="edit" />;
 }

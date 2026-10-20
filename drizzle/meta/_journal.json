@@ -8,6 +8,27 @@
       "when": 1792478351072,
       "tag": "0000_huge_abomination",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792500405884,
+      "tag": "0001_profile_provenance_repo_meta_generation_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792500608120,
+      "tag": "0002_text_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792501676822,
+      "tag": "0003_auth_verification",
+      "breakpoints": true
     }
   ]
 }

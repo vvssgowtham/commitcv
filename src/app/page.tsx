@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Check, FileText, Link2, Plus, Sparkles } from "lucide-react";
 import { Github } from "@/components/github-icon";
+import { SignInButton } from "@/components/auth-buttons";
 import { Logo } from "@/components/logo";
 import { ScoreRing } from "@/components/score-ring";
 
@@ -13,7 +13,7 @@ const tickerJobs = [
 
 const faqs = [
   { q: "Do I need an existing resume?", a: "No. Upload one and we parse it, or fill a short guided form. Both become your profile — the single source every tailored resume is built from." },
-  { q: "Which GitHub repos can Resumate see?", a: "Only the ones you choose when installing our GitHub App, with read-only access. You can revoke it any time from GitHub settings." },
+  { q: "Which GitHub repos can CommitCV see?", a: "Only the ones you choose when installing our GitHub App, with read-only access. You can revoke it any time from GitHub settings." },
   { q: "Will the PDF pass applicant tracking systems?", a: "Yes. Every resume is single-column with standard section headings, real text (no images), and the job's keywords placed where they're true for you." },
   { q: "Can I paste a job link instead of the description?", a: "Yes. Paste a URL and we pull the description. If a site blocks it, paste the text instead." },
 ];
@@ -30,8 +30,8 @@ export default function Landing() {
             <a href="#faq">FAQ</a>
           </div>
           <div className="flex items-center gap-4 text-sm font-semibold">
-            <Link href="/dashboard" className="hidden sm:inline">Sign in</Link>
-            <Link href="/onboarding" className="rounded-[18px] bg-black px-4 py-2 text-white">Get started</Link>
+            <SignInButton className="hidden sm:inline">Sign in</SignInButton>
+            <SignInButton className="rounded-[18px] bg-black px-4 py-2 text-white cursor-pointer">Get started</SignInButton>
           </div>
         </nav>
       </header>
@@ -47,12 +47,12 @@ export default function Landing() {
               One profile.<br />A perfect resume <span className="relative isolate whitespace-nowrap">for every job<span aria-hidden className="absolute inset-x-0 bottom-1 -z-10 h-3 bg-jr-mint md:bottom-3 md:h-4" /></span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed font-light">
-              Paste a job link. Resumate reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in under a minute.
+              Paste a job link. CommitCV reads the description, picks your strongest GitHub projects, fills the gaps, and hands you an ATS-friendly PDF in about a minute.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link href="/onboarding" className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white">
+              <SignInButton className="inline-flex items-center justify-center gap-2 rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">
                 <Github className="size-5" aria-hidden /> Continue with GitHub
-              </Link>
+              </SignInButton>
               <a href="#how" className="inline-flex items-center justify-center gap-2 px-4 py-4 font-semibold">
                 See how it works <ArrowRight className="size-4" aria-hidden />
               </a>
@@ -64,7 +64,7 @@ export default function Landing() {
             <div className="flex items-center gap-4 border-b border-jr-hairline pb-5">
               <ScoreRing value={91} />
               <div>
-                <p className="text-[13px] font-medium text-jr-muted">Tailored for</p>
+                <p className="text-[13px] font-medium text-jr-muted">Example · tailored for</p>
                 <p className="font-display text-2xl font-bold">Backend Engineer · Stripe</p>
               </div>
             </div>
@@ -84,7 +84,7 @@ export default function Landing() {
         </div>
 
         <dl className="mx-auto mt-20 grid max-w-[1200px] gap-8 sm:grid-cols-3">
-          {[["< 60s", "from job link to PDF"], ["3×", "more interview callbacks reported"], ["100%", "ATS-parsable output"]].map(([n, l]) => (
+          {[["PDF + DOCX", "import the resume you already have"], ["Read-only", "GitHub access, only to repos you pick"], ["0 invented facts", "every line traces back to your profile"]].map(([n, l]) => (
             <div key={l}>
               <dt className="font-display text-[38px] font-bold">{n}</dt>
               <dd className="text-sm font-medium text-black/70">{l}</dd>
@@ -161,9 +161,9 @@ export default function Landing() {
       <section className="bg-black px-4 py-24 text-white">
         <figure className="mx-auto max-w-3xl text-center">
           <blockquote className="font-display text-[32px] leading-tight font-semibold">
-            “I stopped keeping six versions of my resume. I paste the link, check the gaps, download. Got two onsite invites the first week.”
+            Tailored, never invented. If it isn’t in your profile or your code, it isn’t on your resume.
           </blockquote>
-          <figcaption className="mt-8 text-sm text-white/70">Priya S. · Backend Engineer</figcaption>
+          <figcaption className="mt-8 text-sm text-white/70">How CommitCV writes every resume</figcaption>
         </figure>
       </section>
 
@@ -189,16 +189,16 @@ export default function Landing() {
       <section className="bg-jr-mint-canvas px-4 pb-24">
         <div className="mx-auto max-w-[1200px] text-center">
           <h2 className="font-display text-4xl font-bold md:text-5xl">Your next application, tailored in a minute.</h2>
-          <Link href="/onboarding" className="mt-10 inline-flex items-center gap-2 rounded-[36px] border border-black bg-jr-mint px-12 py-3 font-semibold text-black">
+          <SignInButton className="mt-10 inline-flex items-center gap-2 rounded-[36px] border border-black bg-jr-mint px-12 py-3 font-semibold text-black cursor-pointer">
             Try it free <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          </SignInButton>
         </div>
       </section>
 
       <footer className="px-4 py-16 text-sm font-medium text-jr-muted">
         <div className="mx-auto flex max-w-[1200px] flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <Logo />
-          <p>© 2026 Resumate AI</p>
+          <p>© 2026 CommitCV</p>
         </div>
       </footer>
     </div>
@@ -212,9 +212,12 @@ function FeatureBand({ title, body, cta, reverse, children }: { title: string; b
         <div>
           <h2 className="font-display text-4xl leading-tight font-bold md:text-5xl">{title}</h2>
           <p className="mt-6 text-lg font-light">{body}</p>
-          <Link href="/onboarding" className="mt-8 inline-flex rounded-[28px] bg-black px-10 py-4 font-semibold text-white">{cta}</Link>
+          <SignInButton className="mt-8 inline-flex rounded-[28px] bg-black px-10 py-4 font-semibold text-white cursor-pointer">{cta}</SignInButton>
         </div>
-        <div className="rounded-[40px] rounded-tl-none bg-white p-6 shadow-jr-float">{children}</div>
+        <div className="rounded-[40px] rounded-tl-none bg-white p-6 shadow-jr-float">
+          <p className="mb-3 text-[13px] font-medium text-jr-muted">Example</p>
+          {children}
+        </div>
       </div>
     </section>
   );
