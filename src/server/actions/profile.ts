@@ -3,6 +3,7 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import mammoth from "mammoth";
+import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
 import { db } from "@/db";
 import { resumes } from "@/db/schema";
@@ -42,11 +43,12 @@ export async function uploadResume(form: FormData): Promise<Result<{ resumeId: s
   if (n >= DAILY_UPLOADS) return { ok: false, error: `You can upload ${DAILY_UPLOADS} resumes per day. Try again tomorrow.` };
 
   try {
-    const content =
+    const text =
       kind === "pdf"
-        ? [{ type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: Buffer.from(bytes).toString("base64") } }, { type: "text" as const, text: "Extract this resume." }]
-        : [{ type: "text" as const, text: `<resume>\n${(await mammoth.extractRawText({ buffer: Buffer.from(bytes) })).value}\n</resume>\nExtract this resume.` }];
-    const parsed = normalizeParsed(await structured(parsedResumeOutput, { system: PARSE_SYSTEM, content }));
+        ? (await extractText(await getDocumentProxy(bytes), { mergePages: true })).text
+        : (await mammoth.extractRawText({ buffer: Buffer.from(bytes) })).value;
+    if (text.trim().length < 50) return { ok: false, error: "Couldn't find readable text in that file — if it's a scanned image, try a text-based PDF instead." };
+    const parsed = normalizeParsed(await structured(parsedResumeOutput, { system: PARSE_SYSTEM, prompt: `<resume>\n${text}\n</resume>\nExtract this resume.` }));
 
     // Parse first, store second: a failed parse leaves no orphaned file.
     const fileKey = `users/${user.id}/resumes/${crypto.randomUUID()}.${kind}`;

@@ -2,7 +2,7 @@
 
 Tailor an ATS-friendly resume to each job: paste a job description or URL, pull your best projects from GitHub, export a PDF.
 
-**Stack:** Next.js (App Router, TS) · Tailwind v4 · Postgres + Drizzle · Better Auth (GitHub App sign-in, DB sessions, encrypted tokens) · Claude (`claude-opus-5-5`) · Cloudflare R2 · Zod · Vitest
+**Stack:** Next.js (App Router, TS) · Tailwind v4 · Postgres + Drizzle · Better Auth (GitHub App sign-in, DB sessions, encrypted tokens) · Vercel AI SDK (xAI Grok by default, Anthropic as an alternative) · Cloudflare R2 · Zod · Vitest
 
 ## Setup
 
@@ -30,6 +30,10 @@ TEST_DATABASE_URL=postgres://... npm test             # + integration tests (mig
 | Generate resume + PDF | `src/server/actions/generate.ts`, `src/server/generate.ts`, `src/server/services/pdf.tsx` |
 
 **No invented facts.** Names, employers, titles, dates, education and certifications are copied from the database. The model only selects, orders and rephrases; `src/server/resume-grounding.ts` rejects any bullet or summary that adds a number or technology its source doesn't contain and falls back to the user's own words.
+
+**Any LLM provider.** `src/server/services/llm.ts` calls the model through the Vercel AI SDK, not a provider-specific SDK. Switch providers with `LLM_PROVIDER` / `LLM_MODEL` in `.env.local` — no code changes. Resumes and job postings are always converted to plain text first (`unpdf`/`mammoth` for files, our own fetcher for URLs), so every provider sees the same input.
+
+**Fetching a pasted job URL is never done by the LLM's own web tool.** `src/server/services/safe-fetch.ts` fetches it on our server instead, so what gets stored is always the literal page text — never a model's rewrite or a different page it decided to visit. It defends against SSRF: only `https://`, DNS resolution is validated (including IPv4-mapped-IPv6 and loopback/private/link-local ranges, closing the cloud-metadata-endpoint class of bypass) at the moment of connecting rather than in a separate check-then-connect step, and each redirect hop is re-validated.
 
 - Schema: `src/db/schema.ts`. Resume upload and the manual form both populate `candidate_profiles` + section tables (single source of truth).
 - UI references per surface: `design/README.md`.

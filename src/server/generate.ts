@@ -184,7 +184,7 @@ export async function generateResume(userId: string, jobId: string, repoIds: str
     const out = await structured(generationOutput, {
       system: SYSTEM,
       effort: "high",
-      content: [{ type: "text", text: `<job>\n${JSON.stringify(jobBrief)}\n</job>\n<candidate_data>\n${JSON.stringify(candidate)}\n</candidate_data>` }],
+      prompt: `<job>\n${JSON.stringify(jobBrief)}\n</job>\n<candidate_data>\n${JSON.stringify(candidate)}\n</candidate_data>`,
     });
     const doc = assembleResume(profile, user!, repos, out);
     const ats = analyzeAts(doc, analysis.keywords);
