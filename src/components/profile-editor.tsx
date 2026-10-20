@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
 import type { Profile, SourceType } from "@/lib/mock-data";
+import { ResumeReimport } from "@/components/resume-reimport";
 
 // Profile editor — design/notion.md: warm paper canvas, document column, borderless blocks,
 // one blue action, sticker colours only as decorative source dots.
@@ -94,7 +95,10 @@ export function ProfileEditor({ initial, name, email, mode }: { initial: Profile
           </div>
         )}
 
-        <div className="text-5xl" aria-hidden>📄</div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="text-5xl" aria-hidden>📄</div>
+          {mode === "edit" && <ResumeReimport profile={p} onApply={update} />}
+        </div>
         <h1 className="mt-4 text-[40px] leading-[1.1] font-bold tracking-[-1px]">{name || "Your profile"}</h1>
         <p className="mt-2 text-no-ink-muted">Your single source of truth. Every tailored resume is built from this page.</p>
 
