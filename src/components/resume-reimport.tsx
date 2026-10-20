@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileUp, Loader2, Lock, Plus, RefreshCw } from "lucide-react";
+import { FileUp, Loader2, Lock, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { Profile } from "@/lib/profile";
 import type { Change } from "@/lib/resume-merge";
 import { applyResume, uploadResume } from "@/server/actions/profile";
@@ -130,6 +130,13 @@ export function ResumeReimport({ disabled, onApplied }: { disabled: boolean; onA
 }
 
 function Badge({ kind }: { kind: Change["kind"] }) {
+  if (kind === "remove") {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-[#793400]/15 px-2 py-0.5 text-xs font-semibold text-[#793400]">
+        <Trash2 className="size-3" aria-hidden />Duplicate
+      </span>
+    );
+  }
   const isUpdate = kind === "update" || kind === "summary";
   return (
     <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${isUpdate ? "bg-no-purple/40 text-[#391c57]" : "bg-no-green/15 text-[#0f6b24]"}`}>
