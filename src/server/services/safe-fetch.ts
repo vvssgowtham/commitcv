@@ -25,12 +25,14 @@ export function isBlockedAddress(address: string): boolean {
   return ipaddr.process(address).range() !== "unicast";
 }
 
-const safeLookup: LookupFunction = (hostname, options, callback) => {
+export const safeLookup: LookupFunction = (hostname, options, callback) => {
   dns.lookup(hostname, { family: options.family, all: true }, (err, addresses) => {
     if (err) return callback(err, "", 0);
-    const safe = addresses.find((a) => !isBlockedAddress(a.address));
-    if (!safe) return callback(new Error(`"${hostname}" does not resolve to a public address`), "", 0);
-    callback(null, safe.address, safe.family);
+    const safe = addresses.filter((a) => !isBlockedAddress(a.address));
+    if (!safe.length) return callback(new Error(`"${hostname}" does not resolve to a public address`), "", 0);
+    // Node's happy-eyeballs (autoSelectFamily, default since v20) asks with `all: true` and expects an array.
+    if (options.all) return callback(null, safe);
+    callback(null, safe[0].address, safe[0].family);
   });
 };
 

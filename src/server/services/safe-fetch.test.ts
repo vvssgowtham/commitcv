@@ -1,5 +1,6 @@
-import { describe, expect, test } from "vitest";
-import { extractReadableText, isBlockedAddress } from "./safe-fetch";
+import dns from "node:dns";
+import { describe, expect, test, vi } from "vitest";
+import { extractReadableText, isBlockedAddress, safeLookup } from "./safe-fetch";
 
 describe("isBlockedAddress", () => {
   test("allows ordinary public addresses", () => {
@@ -51,5 +52,20 @@ describe("extractReadableText", () => {
 
   test("collapses excess whitespace", () => {
     expect(extractReadableText("<body>  a  \n\n\n\n  b  </body>")).toBe("a \n\n b");
+  });
+});
+
+describe("safeLookup", () => {
+  const resolved = [{ address: "10.0.0.1", family: 4 }, { address: "93.184.216.34", family: 4 }, { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 }];
+  vi.spyOn(dns, "lookup").mockImplementation(((_h: string, _o: unknown, cb: (e: null, a: typeof resolved) => void) => cb(null, resolved)) as never);
+
+  test("returns only public addresses as an array when Node asks with all: true (happy eyeballs)", async () => {
+    const out = await new Promise((r) => safeLookup("x.test", { all: true }, (_e, a) => r(a)));
+    expect(out).toEqual(resolved.slice(1));
+  });
+
+  test("returns a single public address otherwise", async () => {
+    const out = await new Promise((r) => safeLookup("x.test", {}, (_e, a, f) => r([a, f])));
+    expect(out).toEqual(["93.184.216.34", 4]);
   });
 });
