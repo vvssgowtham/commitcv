@@ -9,7 +9,7 @@ const schema = z.object({
   GITHUB_CLIENT_SECRET: z.string().min(1),
   GITHUB_APP_SLUG: z.string().min(1), // github.com/apps/<slug>
   GROQ_API_KEY: z.string().min(1),
-  LLM_MODEL: z.string().min(1).default("openai/gpt-oss-120b"),
+  GROQ_MODEL: z.string().min(1).default("openai/gpt-oss-120b"),
   R2_ACCOUNT_ID: z.string().min(1),
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),

@@ -8,7 +8,7 @@ import { env } from "@/env";
 /** A failure the user can act on; the message is safe to show. */
 export class LlmError extends Error {}
 
-const model = () => groq(env().LLM_MODEL);
+const model = () => groq(env().GROQ_MODEL);
 
 const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ groq: { reasoningEffort: effort } });
 
