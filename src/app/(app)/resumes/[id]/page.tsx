@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Check, Info, X } from "lucide-react";
 import { ScoreRing } from "@/components/score-ring";
 import { verifySession } from "@/lib/dal";
-import { displayUrl, fmtMonth } from "@/lib/profile";
+import { Fragment } from "react";
+import { contactItems, displayUrl, fmtMonth, toHref } from "@/lib/profile";
 import { getGeneration, type ResumeDoc } from "@/server/generate";
 import { DownloadButton } from "./download-button";
 
@@ -89,7 +90,11 @@ function ResumeArticle({ doc }: { doc: ResumeDoc }) {
     <article className="mx-auto w-full max-w-[816px] bg-white px-8 py-10 font-sans text-[13px] leading-[1.45] text-black shadow-sm ring-1 ring-neutral-200 sm:px-14 sm:py-12">
       <header className="text-center">
         <h2 className="text-[24px] font-bold tracking-tight">{h.name}</h2>
-        <p className="mt-1 text-[12px]">{[h.location, h.phone, h.email, ...h.links].filter(Boolean).join("  |  ")}</p>
+        <p className="mt-1 text-[12px]">
+          {contactItems(h).map((c, i) => (
+            <Fragment key={i}>{i > 0 && "  |  "}{c.href ? <a href={c.href} className="hover:underline" {...(c.href.startsWith("http") && { target: "_blank", rel: "noreferrer" })}>{c.text}</a> : c.text}</Fragment>
+          ))}
+        </p>
       </header>
 
       {doc.summary && <Section title="Summary"><p>{doc.summary}</p></Section>}
@@ -117,7 +122,7 @@ function ResumeArticle({ doc }: { doc: ResumeDoc }) {
             <div key={i} className="mt-2 first:mt-0">
               <div className="flex justify-between gap-4">
                 <span><span className="font-semibold">{p.name}</span>{p.tech.length > 0 && ` | ${p.tech.join(", ")}`}</span>
-                <span className="shrink-0">{displayUrl(p.url)}</span>
+                {p.url && <a href={toHref(p.url)} target="_blank" rel="noreferrer" className="shrink-0 hover:underline">{displayUrl(p.url)}</a>}
               </div>
               <ul className="mt-1 list-disc pl-5">{p.bullets.map((b) => <li key={b}>{b}</li>)}</ul>
             </div>

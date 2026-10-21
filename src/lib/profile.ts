@@ -48,3 +48,26 @@ export const fmtMonth = (ym: string) =>
 
 /** How a URL is printed on the resume: "https://www.example.com/x/" → "example.com/x". */
 export const displayUrl = (url: string) => url.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");
+
+/**
+ * Where clicking a stored URL should go. Only ever http(s): anything else (including a typed
+ * "javascript:…") is treated as a bare host and prefixed, so it can't run. Also restores the scheme on
+ * resumes generated before links were stored whole.
+ */
+export const toHref = (url: string) => {
+  const t = url.trim();
+  return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, "")}`;
+};
+
+export type ContactItem = { text: string; href?: string };
+
+/** The resume's contact line, each item with the link it should open. Shared by the PDF and the preview. */
+export function contactItems(h: { location: string; phone: string; email: string; links: string[] }): ContactItem[] {
+  const tel = h.phone.replace(/[^\d+]/g, "");
+  return [
+    ...(h.location ? [{ text: h.location }] : []),
+    ...(h.phone ? [{ text: h.phone, ...(tel && { href: `tel:${tel}` }) }] : []),
+    ...(h.email ? [{ text: h.email, href: `mailto:${h.email.trim()}` }] : []),
+    ...h.links.filter((l) => l.trim()).map((l) => ({ text: displayUrl(l), href: toHref(l) })),
+  ];
+}
