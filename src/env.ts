@@ -14,6 +14,7 @@ const schema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   R2_BUCKET: z.string().min(1),
   CLOUDFLARE_AI_TOKEN: z.string().min(1), // Workers AI (same account as R2): embeddings for the repo index
+  CRON_SECRET: z.string().min(16).optional(), // Vercel sends it as a bearer token to cron routes; unset = cron disabled
 });
 
 let cached: z.infer<typeof schema> | undefined;

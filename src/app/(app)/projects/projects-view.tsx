@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ExternalLink, Lock, RefreshCw, Search, Star } from "lucide-react";
+import { AlertCircle, Check, ExternalLink, Loader2, Lock, RefreshCw, Search, Star } from "lucide-react";
 import { Github } from "@/components/github-icon";
 import type { RepoRow } from "@/server/repos";
-import { setIncluded as saveIncluded, syncRepos } from "@/server/actions/repos";
+import { indexNextRepo, setIncluded as saveIncluded, syncRepos } from "@/server/actions/repos";
 
 // GitHub projects — design/vercel.md: #fafafa canvas, hairline white cards, Geist + Geist Mono eyebrows,
 // ink-only chrome, 6px app buttons, mesh gradient only in the header band.
@@ -24,7 +24,7 @@ function ago(d: Date | null) {
   return rtf.format(Math.round(days / 365), "year");
 }
 
-export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; installUrl: string; login: string }) {
+export function ProjectsView({ repos, toIndex, installUrl, login }: { repos: RepoRow[]; toIndex: number; installUrl: string; login: string }) {
   const [query, setQuery] = useState("");
   const [included, setIncluded] = useState(() => new Set(repos.filter((r) => r.included).map((r) => r.id)));
   const [syncing, startSync] = useTransition();
@@ -46,6 +46,26 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
     if (repos.length === 0 && !autoSynced.current) { autoSynced.current = true; sync(); }
   }, [repos.length]);
 
+  // Index waiting repos one per request (each fits a serverless time limit) for as long as the page is open.
+  const [indexing, setIndexing] = useState<{ remaining: number; paused: boolean }>({ remaining: toIndex, paused: false });
+  const running = useRef(false);
+  useEffect(() => {
+    if (toIndex === 0 || running.current) return;
+    running.current = true;
+    let alive = true;
+    (async () => {
+      for (let left = toIndex; alive && left > 0;) {
+        const res = await indexNextRepo();
+        if (!res.ok) { setError(res.error); break; }
+        left = res.data.remaining;
+        setIndexing({ remaining: left, paused: res.data.paused });
+        if (res.data.paused) break;
+      }
+      running.current = false;
+    })();
+    return () => { alive = false; };
+  }, [toIndex]);
+
   async function toggle(id: string) {
     const on = !included.has(id);
     const next = new Set(included);
@@ -64,6 +84,10 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
           <p className="font-mono text-xs font-medium tracking-wider text-vc-mute uppercase">GitHub projects</p>
           <h1 className="mt-2 text-[32px] leading-10 font-semibold tracking-[-1.28px]">Your repositories</h1>
           <p className="mt-2 max-w-xl text-sm text-vc-body">Included repos can be picked for tailored resumes. We only read repos you granted the CommitCV GitHub App access to.</p>
+          <p className="mt-2 max-w-xl text-xs text-vc-mute">
+            To choose the right projects and write accurate bullets, CommitCV reads the code of included repos and keeps searchable excerpts.
+            Excerpts are embedded with Cloudflare Workers AI, which doesn’t train on them. Excluding a repo deletes its excerpts.
+          </p>
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="inline-flex h-8 items-center gap-2 rounded-md border border-vc-hairline bg-white px-2.5 text-sm">
               <Github className="size-4" /> {login} <span className="size-1.5 rounded-full bg-vc-link" aria-label="Connected" />
@@ -89,6 +113,13 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
           </label>
           <p className="font-mono text-xs text-vc-mute">{included.size} of {repos.length} included</p>
         </div>
+        {indexing.remaining > 0 && (
+          <p role="status" className="mt-4 flex items-center gap-2 rounded-md border border-vc-hairline bg-white px-3 py-2 text-sm text-vc-body">
+            {indexing.paused
+              ? <>Today’s free indexing allowance is used up — the remaining {indexing.remaining} repos are indexed tomorrow.</>
+              : <><Loader2 className="size-4 animate-spin" aria-hidden /> Reading your code — {indexing.remaining} {indexing.remaining === 1 ? "repository" : "repositories"} left. Keep this page open to finish sooner.</>}
+          </p>
+        )}
         {error && <p role="alert" className="mt-4 rounded-md border border-[#ffcfcf] bg-[#fff5f5] px-3 py-2 text-sm text-[#c50000]">{error}</p>}
 
         <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -120,6 +151,7 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
                     </span>
                   ))}
                 </div>
+                {on && <IndexState repo={r} />}
                 <div className="mt-4 flex items-center justify-between border-t border-vc-hairline-soft pt-4 font-mono text-xs text-vc-mute">
                   <span className="inline-flex items-center gap-1"><Star className="size-3.5" aria-hidden />{r.stars}</span>
                   <span>Updated {ago(r.pushedAt)}</span>
@@ -143,6 +175,24 @@ export function ProjectsView({ repos, installUrl, login }: { repos: RepoRow[]; i
           <p className="mt-10 rounded-xl border border-dashed border-vc-hairline bg-white p-10 text-center text-sm text-vc-mute">No repositories match “{query}”.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function IndexState({ repo: r }: { repo: RepoRow }) {
+  if (r.indexStatus === "failed") {
+    return <p className="mt-3 flex items-start gap-1.5 text-xs text-[#c50000]" title={r.indexError ?? undefined}><AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />Couldn’t read this repo{r.indexError ? `: ${r.indexError}` : "."}</p>;
+  }
+  if (r.indexStatus !== "ready" || !r.facts) {
+    return <p className="mt-3 text-xs text-vc-mute">{r.indexStatus === "indexing" ? "Reading code…" : "Waiting to be read"}</p>;
+  }
+  const f = r.facts;
+  return (
+    <div className="mt-3 text-xs text-vc-body">
+      <p className="flex items-center gap-1.5"><Check className="size-3.5 text-vc-link" aria-hidden />Code read · {f.files} files · {f.dependencies.length} dependencies{f.hasTests ? " · tests" : ""}</p>
+      {f.infra.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-1">{f.infra.map((x) => <li key={x} className="rounded border border-vc-hairline px-1.5 py-0.5 font-mono text-[11px]">{x}</li>)}</ul>
+      )}
     </div>
   );
 }
