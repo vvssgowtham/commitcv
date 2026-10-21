@@ -25,6 +25,18 @@ function tarball(files: Record<string, string>) {
   return gzipSync(Buffer.concat([...blocks, Buffer.alloc(1024)]));
 }
 let archive: Record<string, string> = {};
+// GitHub as the indexer sees it: repo metadata, then the archive. `forkOf` turns the test repo into a fork.
+let forkOf: null | { commits: { sha: string; login: string; files: string[] }[]; diff: { filename: string; status: string; patch?: string }[] } = null;
+const github = (url: string) => {
+  const path = new URL(url).pathname;
+  const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+  if (path.endsWith("/tarball")) return new Response(tarball(archive));
+  if (/^\/repos\/me\/r\d+$/.test(path)) return json(forkOf ? { fork: true, default_branch: "main", parent: { full_name: "upstream/r", default_branch: "main", owner: { login: "upstream" } } } : { fork: false, default_branch: "main" });
+  if (path.includes("/compare/")) return json({ commits: forkOf!.commits.map((c) => ({ sha: c.sha, author: { login: c.login } })), files: forkOf!.diff });
+  const sha = path.match(/\/commits\/(\w+)$/)?.[1];
+  if (sha) return json({ files: forkOf!.commits.find((c) => c.sha === sha)!.files.map((filename) => ({ filename, status: "modified" })) });
+  return new Response("not found", { status: 404 });
+};
 
 describe.skipIf(!url)("repo indexer", () => {
   let db: typeof import("@/db").db;
@@ -60,7 +72,8 @@ describe.skipIf(!url)("repo indexer", () => {
       "src/pay.ts": "export function verifyRazorpaySignature(body: string) {\n  return hmac(body);\n}",
       "src/util.ts": "export const sum = (a: number, b: number) => a + b; // a helper long enough",
     };
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(tarball(archive))));
+    forkOf = null;
+    vi.stubGlobal("fetch", vi.fn(async (u: string) => github(u)));
     await db.delete(s.githubRepositories).where(orm.inArray(s.githubRepositories.userId, [userId, otherUserId]));
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -101,6 +114,28 @@ describe.skipIf(!url)("repo indexer", () => {
     expect(await chunksOf(repo.id)).toHaveLength(3);
   });
 
+  test("a fork contributes only the files its own commits changed, never the original's code", async () => {
+    const repo = await addRepo();
+    // A long file the original wrote, where the fork changed two lines near the end.
+    archive["src/big.ts"] = Array.from({ length: 120 }, (_, i) => (i % 40 === 0 ? `export function f${i}() {` : `  const line${i} = ${i}; // original code`)).join("\n");
+    forkOf = {
+      commits: [
+        { sha: "a1", login: "upstream", files: ["src/pay.ts"] },   // the original author's commit: not the user's work
+        { sha: "b2", login: "the-user", files: ["Dockerfile", "src/big.ts"] },
+      ],
+      diff: [
+        { filename: "src/pay.ts", status: "modified", patch: "@@ -1,2 +1,3 @@\n x\n+y" },
+        { filename: "src/big.ts", status: "modified", patch: "@@ -100,2 +100,2 @@\n-a\n-b\n+c\n+d" },
+        { filename: "Dockerfile", status: "added", patch: "@@ -0,0 +1 @@\n+FROM node:22" },
+      ],
+    };
+    expect(await ix.indexRepo((await mine())!, "t")).toBe("ready");
+    const kept = await chunksOf(repo.id);
+    expect(kept.map((c) => c.path)).toEqual(["src/big.ts"]); // not README.md, not src/pay.ts, not untouched files
+    expect(kept.every((c) => c.startLine <= 101 && c.endLine >= 100)).toBe(true); // only the chunk holding the change
+    expect((await repoRow(repo.id)).facts).toEqual({ dependencies: [], infra: ["Docker"], files: 2, hasTests: false, fork: { parent: "upstream/r", commits: 1, changedFiles: 2 } });
+  });
+
   test("two concurrent claims never get the same repo", async () => {
     await addRepo();
     const [a, b] = await Promise.all([mine(), mine()]);
@@ -109,7 +144,7 @@ describe.skipIf(!url)("repo indexer", () => {
 
   test("a failed repo waits for new commits instead of retrying forever", async () => {
     const repo = await addRepo();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 500 })));
+    vi.stubGlobal("fetch", vi.fn(async (u: string) => (String(u).endsWith("/tarball") ? new Response("nope", { status: 500 }) : github(u))));
     expect(await ix.indexRepo((await mine())!, "t")).toBe("failed");
     expect(await repoRow(repo.id)).toMatchObject({ indexStatus: "failed", indexError: expect.stringContaining("500") });
     expect(await mine()).toBeNull();
@@ -119,7 +154,7 @@ describe.skipIf(!url)("repo indexer", () => {
 
   test("a private repo the app can't read says how to fix it, and Sync retries it", async () => {
     const repo = await addRepo();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response('{"message":"Resource not accessible by integration"}', { status: 403 })));
+    vi.stubGlobal("fetch", vi.fn(async (u: string) => (String(u).endsWith("/tarball") ? new Response('{"message":"Resource not accessible by integration"}', { status: 403 }) : github(u))));
     expect(await ix.indexRepo((await mine())!, "t")).toBe("failed");
     expect((await repoRow(repo.id)).indexError).toMatch(/Contents: Read-only/);
     await repos.saveSyncedRepos(userId, [{ githubRepoId: 1, name: "r1", url: "https://github.com/me/r1", description: null, languages: {}, topics: [], readmeExcerpt: null, stars: 0, isPrivate: true, pushedAt: new Date("2026-01-01") }]);

@@ -2,7 +2,10 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 const url = process.env.TEST_DATABASE_URL;
 
-vi.mock("@/server/services/llm", () => ({ structured: vi.fn(), LlmError: class extends Error {} }));
+vi.mock("@/server/services/llm", () => ({ structured: vi.fn(), LlmError: class extends Error {}, CapacityError: class extends Error {} }));
+// What hybrid search returns for a repo: one real excerpt of the user's code.
+let found: unknown[] = [];
+vi.mock("@/server/repo-search", () => ({ searchRepos: vi.fn(async () => found) }));
 const stored: Record<string, Uint8Array> = {};
 vi.mock("@/server/services/storage", () => ({
   putObject: vi.fn(async (key: string, body: Uint8Array) => { stored[key] = body; }),
@@ -80,5 +83,36 @@ describe.skipIf(!url)("resume generation", () => {
     expect(gen.ats).toMatchObject({ keywordsCovered: ["Go", "payments"], keywordsMissing: ["Kafka"], score: 67 });
     const pdf = stored[gen.pdfFileKey!];
     expect(new TextDecoder().decode(pdf.subarray(0, 5))).toBe("%PDF-");
+  }, 30_000);
+
+  test("bullets from a repo's code: described only from names in it, never with numbers, never raw code", async () => {
+    const { structured } = await import("@/server/services/llm");
+    const { generateResume, getGeneration } = await import("./generate");
+    const [repo] = await db.insert(schema.githubRepositories).values({
+      userId, githubRepoId: 77, name: "payments-svc", url: "https://github.com/asha/payments-svc", languages: { TypeScript: 100 },
+      indexStatus: "ready", facts: { dependencies: ["fastify"], infra: ["Docker"], files: 12, hasTests: true },
+    }).returning();
+    found = [{ id: "c1", repoId: repo.id, repoName: repo.name, path: "src/webhook.ts", startLine: 10, endLine: 16, kind: "code", score: 1,
+      text: "export function verifyRazorpaySignature(body: string, sig: string) {\n  const expected = createHmac('sha256', SECRET).update(body).digest('hex');\n  return timingSafeEqual(Buffer.from(expected), Buffer.from(sig));\n}" }];
+    const [job] = await db.insert(schema.jobs).values({ userId, description: "Payments engineer", title: "Payments Engineer", company: "Acme",
+      extractedContent: { title: "Payments Engineer", company: "Acme", location: "", seniority: "", matchScore: 0, keywords: ["Razorpay"], recommendedRepos: [],
+        required: [{ requirement: "Payment webhooks", evidence: [], matched: false }], niceToHave: [] } }).returning();
+
+    vi.mocked(structured).mockResolvedValueOnce({
+      summary: "", experience: [], skillIds: [],
+      projects: [{ kind: "repo", id: repo.id, bullets: [
+        { text: "Verified Razorpay webhook signatures with HMAC and a timing-safe comparison", sourceLine: 0 }, // grounded in the code
+        { text: "Processed 10,000 Razorpay payments per second", sourceLine: 0 }, // a number from nowhere
+        { text: "Built the Stripe integration", sourceLine: 0 },                  // a name not in the code
+      ] }],
+    });
+    const gen = (await getGeneration(userId, await generateResume(userId, job.id, [repo.id])))!;
+    const project = gen.doc!.projects[0];
+    expect(project).toMatchObject({ name: "payments-svc", tech: ["TypeScript"] });
+    expect(project.bullets).toEqual(["Verified Razorpay webhook signatures with HMAC and a timing-safe comparison"]);
+    const all = JSON.stringify(gen.doc);
+    for (const bad of ["10,000", "Stripe", "createHmac", "timingSafeEqual("]) expect(all).not.toContain(bad); // no invented facts, no raw code
+    expect(gen.doc!.grounding.droppedBullets).toBe(2);
+    found = [];
   }, 30_000);
 });

@@ -2,7 +2,7 @@ import "server-only";
 import { and, count, desc, eq, inArray, lt, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { githubRepositories, repoChunks } from "@/db/schema";
-import { chunkRepo, embeddingInput, MAX_DOWNLOAD_BYTES, readTarball, repoFacts, searchText } from "@/server/repo-index";
+import { addedRanges, chunkRepo, embeddingInput, keepForkWork, MAX_DOWNLOAD_BYTES, readTarball, repoFacts, searchText, type ForkWork } from "@/server/repo-index";
 import { embedDocuments } from "@/server/services/embeddings";
 import { GithubAuthError } from "@/server/services/github";
 import { CapacityError } from "@/server/services/llm";
@@ -38,11 +38,47 @@ export async function reposLeftToIndex(userId: string) {
   return n;
 }
 
+const ghHeaders = (token: string) => ({ Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" });
+const ownerAndName = (repoUrl: string) => new URL(repoUrl).pathname.slice(1).split("/") as [string, string];
+
+async function gh<T>(path: string, token: string): Promise<T> {
+  const res = await fetch(`https://api.github.com${path}`, { headers: ghHeaders(token) });
+  if (res.status === 401) throw new GithubAuthError();
+  if (!res.ok) throw new Error(`GitHub returned ${res.status} for ${path.split("?")[0]}`);
+  return res.json() as Promise<T>;
+}
+
+/**
+ * For a fork: what its own commits (not the original repo's owner's) added — whole files they created,
+ * and only the changed lines of files they modified. Only that is the user's work; the rest of a fork
+ * (its README, its app) was written by someone else. Returns null for a repo that isn't a fork.
+ */
+async function forkChanges(repoUrl: string, token: string) {
+  const [owner, name] = ownerAndName(repoUrl);
+  const meta = await gh<{ fork: boolean; default_branch: string; parent?: { full_name: string; default_branch: string; owner: { login: string } } }>(`/repos/${owner}/${name}`, token);
+  if (!meta.fork || !meta.parent) return null;
+  const { parent } = meta;
+  // The combined diff from the original to the fork's head: its hunk line numbers match the files we index.
+  const cmp = await gh<{ commits: { sha: string; author: { login: string } | null }[]; files?: { filename: string; status: string; patch?: string }[] }>(
+    `/repos/${parent.full_name}/compare/${parent.default_branch}...${owner}:${meta.default_branch}`, token);
+  const own = cmp.commits.filter((c) => c.author?.login !== parent.owner.login);
+  const touched = new Set<string>();
+  for (const c of own.slice(-100)) {
+    const detail = await gh<{ files?: { filename: string; status: string }[] }>(`/repos/${owner}/${name}/commits/${c.sha}`, token);
+    for (const f of detail.files ?? []) if (f.status !== "removed") touched.add(f.filename);
+  }
+  const work: ForkWork = new Map();
+  for (const f of cmp.files ?? []) {
+    if (!touched.has(f.filename) || f.status === "removed") continue;
+    if (f.status === "added") work.set(f.filename, "all");
+    else if (f.patch) work.set(f.filename, addedRanges(f.patch)); // no patch (huge diff): can't tell which lines — skip
+  }
+  return { parent: parent.full_name, commits: own.length, work };
+}
+
 async function downloadTarball(repoUrl: string, token: string) {
-  const [owner, name] = new URL(repoUrl).pathname.slice(1).split("/");
-  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/tarball`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-  });
+  const [owner, name] = ownerAndName(repoUrl);
+  const res = await fetch(`https://api.github.com/repos/${owner}/${name}/tarball`, { headers: ghHeaders(token) });
   if (res.status === 401) throw new GithubAuthError();
   // The GitHub App was installed without Repository → Contents: Read. Public repos still download; private don't.
   if (res.status === 403 && /not accessible by integration/i.test(await res.clone().text())) {
@@ -57,9 +93,15 @@ async function downloadTarball(repoUrl: string, token: string) {
  * embeds what actually changed. */
 export async function indexRepo(repo: typeof repos.$inferSelect, token: string): Promise<"ready" | "paused" | "failed"> {
   try {
-    const { files, paths } = await downloadTarball(repo.url, token);
-    const facts = repoFacts(files, paths);
-    const chunks = chunkRepo(files);
+    const fork = await forkChanges(repo.url, token);
+    const all = await downloadTarball(repo.url, token);
+    // A fork contributes only what its own commits added. Its manifests list the original's dependencies,
+    // so a fork's dependencies count only from manifests the fork itself created.
+    const files = fork ? all.files.filter((f) => fork.work.has(f.path)) : all.files;
+    const paths = fork ? all.paths.filter((p) => fork.work.has(p)) : all.paths;
+    const base = repoFacts(fork ? files.filter((f) => fork.work.get(f.path) === "all") : files, paths);
+    const facts = fork ? { ...base, fork: { parent: fork.parent, commits: fork.commits, changedFiles: fork.work.size } } : base;
+    const chunks = fork ? keepForkWork(chunkRepo(files), fork.work) : chunkRepo(files);
 
     const known = new Map(
       (await db.select({ contentHash: repoChunks.contentHash, embedding: repoChunks.embedding }).from(repoChunks).where(eq(repoChunks.repoId, repo.id)))

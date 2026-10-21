@@ -5,6 +5,8 @@ export type RepoFacts = {
   infra: string[];
   files: number;
   hasTests: boolean;
+  // A fork: everything above describes only the files its own commits changed, never the original's code.
+  fork?: { parent: string; commits: number; changedFiles: number };
 };
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();

@@ -64,6 +64,14 @@ test("sourceLines splits a merged paragraph into sentences without breaking Node
   ]);
 });
 
+test("a bullet citing code keeps numbers only inside names copied from that code", () => {
+  const code = "code deploy.sh:1-9: DB_ENC_KEY must be exactly 16 chars for AES-128; FROM node22";
+  const g = (text: string) => groundBullets([{ text, sourceLine: 0 }], [code], "", 3, new Set([0]));
+  expect(g("Enforced an AES-128 key length for DB_ENC_KEY").bullets).toHaveLength(1);
+  expect(g("Deployed 10,000 instances with AES-128").bullets).toHaveLength(0); // bare figure: dropped, not replaced
+  expect(g("Hardened a Kubernetes cluster").dropped).toBe(1); // name not in the code
+});
+
 test("groundBullets never cuts a long bullet mid-sentence — it falls back to the whole source line", () => {
   const line = "Built a service with Kafka.";
   const r = groundBullets([{ text: `Built a service with Kafka ${"and more ".repeat(40)}`, sourceLine: 0 }], [line], "", 5);

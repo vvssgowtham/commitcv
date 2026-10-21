@@ -12,6 +12,8 @@ import { env } from "@/env";
 export class LlmError extends Error {}
 /** Today's shared free allowance for a provider is (nearly) used up. Background work waits for the reset. */
 export class CapacityError extends LlmError {}
+/** The provider estimates this one request above its per-request limit; a smaller request can succeed. */
+export class TooLargeError extends LlmError {}
 
 // Verified available to a Groq key and tested end-to-end with a live structured-output call.
 const MODEL = "openai/gpt-oss-120b";
@@ -87,7 +89,8 @@ export async function structured<S extends z.ZodType>(schema: S, { system, promp
     }
     if (APICallError.isInstance(e)) {
       if (e.statusCode === 401 || e.statusCode === 403) throw new LlmError("The AI provider rejected our API key. Check GROQ_API_KEY.");
-      if (e.statusCode === 413) throw new LlmError("That's more than our AI provider accepts in one go right now. Please try again in a minute — if it keeps happening, shorten the text.");
+      // Groq's free tier caps one request's *estimate* (~prompt + 4.4k tokens, measured) at 8k, whatever max_tokens is.
+      if (e.statusCode === 413) throw new TooLargeError("That's more than our AI provider accepts in one go right now. Please try again in a minute — if it keeps happening, shorten the text.");
       const providerMessage = String((e.data as { error?: { message?: string } } | undefined)?.error?.message ?? "");
       if (e.statusCode === 429 && /per day|TPD|RPD/i.test(providerMessage)) throw new CapacityError(CAPACITY_MESSAGE);
       if (e.isRetryable || e.statusCode === 429) throw new LlmError("Our AI provider is busy right now. Please try again in a minute.");

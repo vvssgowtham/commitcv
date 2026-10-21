@@ -6,7 +6,9 @@ const url = process.env.TEST_DATABASE_URL;
 vi.mock("@/server/services/llm", () => ({
   structured: vi.fn(),
   LlmError: class extends Error {},
+  CapacityError: class extends Error {},
 }));
+vi.mock("@/server/repo-search", () => ({ searchRepos: vi.fn(async () => []) }));
 
 describe.skipIf(!url)("job analysis", () => {
   let userId = "";
