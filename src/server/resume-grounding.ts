@@ -29,12 +29,27 @@ export function isGrounded(text: string, corpus: string) {
 
 export type Bullet = { text: string; sourceLine: number };
 
+/** Numbers in a bullet that cites code, other than ones inside a name copied verbatim from that code
+ * ("AES-128", "node22"). A bare figure next to code ("10,000 requests") is a claim the code can't back. */
+export function looseNumbersForCode(text: string, code: string) {
+  const inCode = new Set(words(code).map((w) => w.toLowerCase()));
+  const named = words(text).filter((w) => /\d/.test(w) && inCode.has(w.toLowerCase()));
+  return numbersIn(named.reduce((t, w) => t.split(w).join(" "), text));
+}
+
+/** Code identifiers as words: "verifyRazorpaySignature" → "verify Razorpay Signature", "razorpay_webhook" → "razorpay webhook". */
+export const splitIdentifiers = (text: string) => text.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_\-./]+/g, " ");
+
 /**
  * Ground one item's bullets against its own source lines.
  * Each bullet must cite a real line; if it adds facts that line (plus the allowed extras) lacks,
  * the original line is used verbatim. Returns final bullets and how many were replaced/dropped.
+ *
+ * `code` marks lines that are source code, not prose. A bullet citing code is checked against its
+ * identifiers too, may not contain a number (a constant in code is not a metric), and is dropped
+ * rather than replaced when it fails — raw code is never a bullet.
  */
-export function groundBullets(bullets: Bullet[], lines: string[], extras: string, max: number) {
+export function groundBullets(bullets: Bullet[], lines: string[], extras: string, max: number, code: ReadonlySet<number> = new Set()) {
   const out: string[] = [];
   let replaced = 0;
   let dropped = 0;
@@ -44,8 +59,12 @@ export function groundBullets(bullets: Bullet[], lines: string[], extras: string
     if (line === undefined || usedLines.has(b.sourceLine)) { dropped++; continue; }
     usedLines.add(b.sourceLine);
     const text = b.text.trim();
+    const isCode = code.has(b.sourceLine);
+    const evidence = isCode ? `${line}\n${splitIdentifiers(line)}` : line;
     // Too long to be a bullet: use the user's own line whole rather than cutting the model's mid-sentence.
-    if (text && text.length <= 300 && isGrounded(text, `${line}\n${extras}`)) out.push(text);
+    const ok = !!text && text.length <= 300 && (!isCode || looseNumbersForCode(text, line).length === 0) && isGrounded(text, `${evidence}\n${extras}`);
+    if (ok) out.push(text);
+    else if (isCode) { dropped++; continue; }
     else { out.push(line); replaced++; }
     if (out.length === max) break;
   }

@@ -1,7 +1,7 @@
 import { gzipSync } from "node:zlib";
 import { Header } from "tar";
 import { describe, expect, test } from "vitest";
-import { chunkRepo, cleanPath, manifestDependencies, readTarball, repoFacts, searchText, wanted } from "./repo-index";
+import { addedRanges, chunkRepo, cleanPath, keepForkWork, manifestDependencies, readTarball, repoFacts, searchText, wanted, type ForkWork } from "./repo-index";
 
 // A real (gzipped) tar archive, built with tar's own header encoder, wrapped the way GitHub wraps it.
 type Entry = { path: string; body?: string | Buffer; type?: "File" | "SymbolicLink" | "Directory"; linkpath?: string };
@@ -105,6 +105,20 @@ describe("chunks", () => {
     const chunks = chunkRepo([...docs, { path: "src/a.ts", text: code }]);
     expect(chunks.filter((c) => c.kind === "doc").reduce((n, c) => n + c.text.length, 0)).toBeLessThanOrEqual(50_000);
     expect(chunks.some((c) => c.kind === "code")).toBe(true);
+  });
+
+  test("fork work: added line ranges from a diff, and only chunks overlapping them", () => {
+    expect(addedRanges("@@ -10,3 +12,4 @@ fn\n x\n+y\n@@ -40 +44 @@\n+z\n@@ -50,2 +55,0 @@\n-gone")).toEqual([[12, 15], [44, 44]]);
+    const c = (path: string, startLine: number, endLine: number) => ({ path, startLine, endLine, kind: "code" as const, text: "t", contentHash: path + startLine });
+    const chunks = [c("a.ts", 1, 30), c("a.ts", 31, 60), c("new.ts", 1, 10), c("other.ts", 1, 5)];
+    const work: ForkWork = new Map();
+    work.set("a.ts", [[40, 41]]).set("new.ts", "all");
+    expect(keepForkWork(chunks, work).map((x) => `${x.path}:${x.startLine}`)).toEqual(["a.ts:31", "new.ts:1"]);
+  });
+
+  test("resume/CV documents inside a repo aren't indexed — they describe the person, not the repo", () => {
+    for (const p of ["resume.md", "docs/my-resume.md", "gowtham-resume.md", "CV.md", "cv-2025.md"]) expect(wanted(p)).toBe(false);
+    for (const p of ["docs/resume-parsing.md", "src/resume-parser.ts", "resume-builder.md"]) expect(wanted(p)).toBe(true);
   });
 
   test("searchText splits identifiers so exact names are findable", () => {

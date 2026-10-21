@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Parser, type ReadEntry } from "tar";
 import type { RepoFacts } from "@/db/schema";
+import { splitIdentifiers } from "@/server/resume-grounding";
 
 // Turning a GitHub tarball into facts and retrievable chunks. Pure apart from reading the stream:
 // nothing is written to disk, so archive paths are only ever labels, never filesystem targets.
@@ -25,9 +26,14 @@ const INFRA = /(^|\/)(Dockerfile[^/]*|docker-compose[^/]*\.ya?ml|compose\.ya?ml|
 const MARKDOWN = /\.(md|mdx)$/i;
 const TEST = /(^|\/)(__tests__|tests?|spec)\/|\.(test|spec)\.[a-z]+$/i;
 
+// A copy of the person's resume inside a repo describes them, not the repo; indexing it would let a
+// bullet credit the repo with their employer's work.
+const RESUME_NAME = "([\\w-]*[-_])?(resume|cv|curriculum[-_]?vitae)([-_]?\\d{2,4})?";
+const RESUME_DOC = new RegExp(`(^|/)(${RESUME_NAME}\\.(md|mdx|html?|tex|txt|json|ya?ml)|data/${RESUME_NAME}\\.[jt]sx?)$`, "i");
+
 /** Is this archive path worth reading at all? */
 export function wanted(path: string) {
-  if (SKIP_DIRS.test(path) || LOCKFILES.test(path) || GENERATED.test(path)) return false;
+  if (SKIP_DIRS.test(path) || LOCKFILES.test(path) || GENERATED.test(path) || RESUME_DOC.test(path)) return false;
   return CODE.test(path) || MANIFEST.test(path) || INFRA.test(path) || MARKDOWN.test(path);
 }
 
@@ -207,11 +213,28 @@ export function chunkRepo(files: RepoFile[]): Chunk[] {
   return out;
 }
 
+/** Line ranges (in the new file) that a unified-diff patch added or changed. Pure deletions add nothing. */
+export function addedRanges(patch: string): [number, number][] {
+  return [...patch.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)]
+    .map((m) => [Number(m[1]), Number(m[1]) + Number(m[2] ?? 1) - 1] as [number, number])
+    .filter(([a, b]) => b >= a);
+}
+
+/** A fork's own work: whole files it added, and only the changed lines of files it modified. */
+export type ForkWork = Map<string, "all" | [number, number][]>;
+
+export function keepForkWork(chunks: Chunk[], work: ForkWork) {
+  return chunks.filter((c) => {
+    const w = work.get(c.path);
+    return w === "all" || (!!w && w.some(([a, b]) => c.startLine <= b && c.endLine >= a));
+  });
+}
+
 /** Text for the full-text index: the chunk plus its identifiers split into words, so a search for
  * "Razorpay" finds `verifyRazorpaySignature` and `razorpay_webhook`. */
 export const searchText = (c: Pick<Chunk, "path" | "text">) => {
   const both = `${c.path}\n${c.text}`;
-  return `${both}\n${both.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_\-./]+/g, " ")}`;
+  return `${both}\n${splitIdentifiers(both)}`;
 };
 
 /** What the embedding model sees: the path gives a chunk its context ("payments/webhook.ts"). */
