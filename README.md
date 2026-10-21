@@ -17,7 +17,10 @@ npm run dev
 
 ```bash
 npm test                                              # unit tests
-TEST_DATABASE_URL=postgres://... npm test             # + integration tests (migrated DB)
+# + integration tests, on a SEPARATE database — they create and delete rows freely:
+psql postgres://postgres:postgres@localhost:5432/postgres -c "create database commitcv_test"
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/commitcv_test npm run db:migrate
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/commitcv_test npm test
 ```
 
 ## How it works

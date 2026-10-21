@@ -1,4 +1,11 @@
-import { bigint, boolean, date, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, customType, date, halfvec, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+
+export type RepoFacts = {
+  dependencies: string[];
+  infra: string[];
+  files: number;
+  hasTests: boolean;
+};
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date());
@@ -7,6 +14,7 @@ const profileId = () => uuid("profile_id").notNull().references(() => candidateP
 
 export const profileSourceType = pgEnum("profile_source_type", ["RESUME", "MANUAL", "GITHUB", "USER_EDIT"]);
 export const generationStatus = pgEnum("generation_status", ["pending", "ready", "failed"]);
+export const repoIndexStatus = pgEnum("repo_index_status", ["pending", "indexing", "ready", "failed"]);
 
 // Per-item provenance: re-importing a resume may only overwrite RESUME items, never MANUAL / USER_EDIT.
 const source = () => profileSourceType("source").notNull().default("MANUAL");
@@ -103,6 +111,13 @@ export const githubRepositories = pgTable(
     pushedAt: timestamp("pushed_at", { withTimezone: true }),
     included: boolean("included").notNull().default(true), // user can hide a repo from resume selection
     syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+    // Code + README index (repo_chunks). Re-indexed only when pushedAt moves past indexedPushedAt.
+    indexStatus: repoIndexStatus("index_status").notNull().default("pending"),
+    indexedPushedAt: timestamp("indexed_pushed_at", { withTimezone: true }),
+    indexedAt: timestamp("indexed_at", { withTimezone: true }),
+    indexError: text("index_error"),
+    // Exact facts read from the repo itself (manifests, infra files): the allowed tech list for that repo.
+    facts: jsonb("facts").$type<RepoFacts>(),
   },
   (t) => [unique().on(t.userId, t.githubRepoId)],
 );
@@ -233,4 +248,30 @@ export const aiUsageDaily = pgTable(
     requests: integer("requests").notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.day, t.provider] })],
+);
+
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+
+// Chunks of a repo's README, docs and code, embedded for retrieval. `text` is the literal file content
+// for lines startLine..endLine, so anything cited from a chunk can be checked against the real file.
+export const repoChunks = pgTable(
+  "repo_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repoId: uuid("repo_id").notNull().references(() => githubRepositories.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    startLine: integer("start_line").notNull(),
+    endLine: integer("end_line").notNull(),
+    kind: text("kind").$type<"readme" | "doc" | "code">().notNull(),
+    text: text("text").notNull(),
+    contentHash: text("content_hash").notNull(),
+    embedding: halfvec("embedding", { dimensions: 1024 }).notNull(),
+    // Full-text side of hybrid search, over the text with code identifiers split into words.
+    tsv: tsvector("tsv").notNull(),
+  },
+  (t) => [
+    index("repo_chunks_repo_idx").on(t.repoId),
+    index("repo_chunks_embedding_idx").using("hnsw", t.embedding.op("halfvec_cosine_ops")),
+    index("repo_chunks_tsv_idx").using("gin", t.tsv),
+  ],
 );
