@@ -45,3 +45,6 @@ export const emptyProfile: Profile = {
 
 export const fmtMonth = (ym: string) =>
   !ym ? "Present" : ym.length === 4 ? ym : new Date(`${ym}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+/** How a URL is printed on the resume: "https://www.example.com/x/" → "example.com/x". */
+export const displayUrl = (url: string) => url.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");
