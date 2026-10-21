@@ -5,7 +5,10 @@ import { githubRepositories } from "@/db/schema";
 import type { GrantedRepo } from "@/server/services/github";
 
 export async function listRepos(userId: string) {
-  return db.select().from(githubRepositories).where(eq(githubRepositories.userId, userId)).orderBy(desc(githubRepositories.pushedAt));
+  const rows = await db.select().from(githubRepositories).where(eq(githubRepositories.userId, userId)).orderBy(desc(githubRepositories.pushedAt));
+  // jsonb doesn't keep key order (it returns shortest keys first), so "first 3 languages" showed
+  // HCL, Shell, PLpgSQL for a repo that is 89% TypeScript. Rebuild each map largest share first.
+  return rows.map((r) => ({ ...r, languages: r.languages && Object.fromEntries(Object.entries(r.languages).toSorted((a, b) => b[1] - a[1])) }));
 }
 
 /** Mirror the granted repos: upsert what's granted (keeping the user's `included` choice), drop what isn't. */

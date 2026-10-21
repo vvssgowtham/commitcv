@@ -1,6 +1,6 @@
 import "server-only";
 import { Document, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { fmtMonth } from "@/lib/profile";
+import { displayUrl, fmtMonth } from "@/lib/profile";
 import type { ResumeDoc } from "@/server/generate";
 
 // ATS-safe PDF: one column, standard headings, real selectable text, built-in Helvetica, no images or tables.
@@ -75,7 +75,7 @@ export function ResumePdf({ doc }: { doc: ResumeDoc }) {
               <View key={i} style={st.item}>
                 <View style={st.row}>
                   <Text><Text style={st.bold}>{p.name}</Text>{p.tech.length ? ` | ${p.tech.join(", ")}` : ""}</Text>
-                  <Text>{p.url.replace(/^https?:\/\//, "")}</Text>
+                  <Text>{displayUrl(p.url)}</Text>
                 </View>
                 <Bullets items={p.bullets} />
               </View>

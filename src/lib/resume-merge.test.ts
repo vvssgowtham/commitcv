@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { Profile } from "./profile";
+import { displayUrl, type Profile } from "./profile";
 import { applyChanges, diffResume } from "./resume-merge";
 
 const base = (): Profile => ({
@@ -86,4 +86,10 @@ test("re-importing heals a duplicate without touching the user's own edited row"
 
   const next = applyChanges(p, changes, () => "unused");
   assert.deepEqual(next.projects.map((pr) => pr.id), ["mine"]);
+});
+
+test("displayUrl drops protocol, www and trailing slash", () => {
+  assert.equal(displayUrl("https://minicardboard.vvssgowtham.in/"), "minicardboard.vvssgowtham.in");
+  assert.equal(displayUrl("http://www.linkedin.com/in/x/"), "linkedin.com/in/x");
+  assert.equal(displayUrl("github.com/vvssgowtham/wacrm"), "github.com/vvssgowtham/wacrm");
 });

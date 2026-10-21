@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Check, Info, X } from "lucide-react";
 import { ScoreRing } from "@/components/score-ring";
 import { verifySession } from "@/lib/dal";
-import { fmtMonth } from "@/lib/profile";
+import { displayUrl, fmtMonth } from "@/lib/profile";
 import { getGeneration, type ResumeDoc } from "@/server/generate";
 import { DownloadButton } from "./download-button";
 
@@ -117,7 +117,7 @@ function ResumeArticle({ doc }: { doc: ResumeDoc }) {
             <div key={i} className="mt-2 first:mt-0">
               <div className="flex justify-between gap-4">
                 <span><span className="font-semibold">{p.name}</span>{p.tech.length > 0 && ` | ${p.tech.join(", ")}`}</span>
-                <span className="shrink-0">{p.url.replace(/^https?:\/\//, "")}</span>
+                <span className="shrink-0">{displayUrl(p.url)}</span>
               </div>
               <ul className="mt-1 list-disc pl-5">{p.bullets.map((b) => <li key={b}>{b}</li>)}</ul>
             </div>

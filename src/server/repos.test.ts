@@ -37,6 +37,12 @@ describe.skipIf(!url)("repo sync", () => {
     expect(after[0]).toMatchObject({ githubRepoId: 1, stars: 9, included: false });
   });
 
+  test("languages come back largest share first, not in jsonb's shortest-key-first order", async () => {
+    await mod.saveSyncedRepos(userId, [repo(3, { languages: { TypeScript: 89, PLpgSQL: 7, HCL: 2, Shell: 2 } })]);
+    const [r] = (await mod.listRepos(userId)).filter((x) => x.githubRepoId === 3);
+    expect(Object.keys(r.languages ?? {})).toEqual(["TypeScript", "PLpgSQL", "HCL", "Shell"]);
+  });
+
   test("cannot toggle another user's repo", async () => {
     expect(await mod.setRepoIncluded(userId, crypto.randomUUID(), true)).toBe(false);
   });
