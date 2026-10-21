@@ -1,6 +1,7 @@
 import "server-only";
-import { Document, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { displayUrl, fmtMonth } from "@/lib/profile";
+import { Fragment } from "react";
+import { Document, Link, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { contactItems, displayUrl, fmtMonth, toHref } from "@/lib/profile";
 import type { ResumeDoc } from "@/server/generate";
 
 // ATS-safe PDF: one column, standard headings, real selectable text, built-in Helvetica, no images or tables.
@@ -17,6 +18,8 @@ const st = StyleSheet.create({
   bullet: { flexDirection: "row", marginTop: 1.5, paddingLeft: 8 },
   dot: { width: 10 },
   bulletText: { flex: 1 },
+  // Real link annotations, styled like the surrounding text so the page still prints and parses plainly.
+  link: { color: "#000", textDecoration: "none" },
 });
 
 const range = (start: string, end: string) => (start ? `${fmtMonth(start)} – ${fmtMonth(end)}` : end ? fmtMonth(end) : "");
@@ -45,7 +48,11 @@ export function ResumePdf({ doc }: { doc: ResumeDoc }) {
     <Document title={`${h.name} — Resume`} author={h.name}>
       <Page size="LETTER" style={st.page}>
         <Text style={st.name}>{h.name}</Text>
-        <Text style={st.contact}>{[h.location, h.phone, h.email, ...h.links].filter(Boolean).join("  |  ")}</Text>
+        <Text style={st.contact}>
+          {contactItems(h).map((c, i) => (
+            <Fragment key={i}>{i > 0 && "  |  "}{c.href ? <Link src={c.href} style={st.link}>{c.text}</Link> : c.text}</Fragment>
+          ))}
+        </Text>
 
         {doc.summary && <Section title="Summary"><Text>{doc.summary}</Text></Section>}
 
@@ -75,7 +82,7 @@ export function ResumePdf({ doc }: { doc: ResumeDoc }) {
               <View key={i} style={st.item}>
                 <View style={st.row}>
                   <Text><Text style={st.bold}>{p.name}</Text>{p.tech.length ? ` | ${p.tech.join(", ")}` : ""}</Text>
-                  <Text>{displayUrl(p.url)}</Text>
+                  {p.url ? <Link src={toHref(p.url)} style={st.link}>{displayUrl(p.url)}</Link> : <Text />}
                 </View>
                 <Bullets items={p.bullets} />
               </View>

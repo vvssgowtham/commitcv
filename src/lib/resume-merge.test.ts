@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { displayUrl, type Profile } from "./profile";
+import { contactItems, displayUrl, toHref, type Profile } from "./profile";
 import { applyChanges, diffResume } from "./resume-merge";
 
 const base = (): Profile => ({
@@ -92,4 +92,20 @@ test("displayUrl drops protocol, www and trailing slash", () => {
   assert.equal(displayUrl("https://minicardboard.vvssgowtham.in/"), "minicardboard.vvssgowtham.in");
   assert.equal(displayUrl("http://www.linkedin.com/in/x/"), "linkedin.com/in/x");
   assert.equal(displayUrl("github.com/vvssgowtham/wacrm"), "github.com/vvssgowtham/wacrm");
+});
+
+test("toHref only ever produces http(s) links", () => {
+  assert.equal(toHref("https://linkedin.com/in/x"), "https://linkedin.com/in/x");
+  assert.equal(toHref("github.com/x"), "https://github.com/x"); // a resume from before links were stored whole
+  assert.equal(toHref("javascript:alert(1)"), "https://javascript:alert(1)"); // inert: a bad host, not a script
+  assert.equal(toHref(" http://x.dev "), "http://x.dev");
+});
+
+test("contactItems: tel:, mailto: and https links, shown shortened", () => {
+  assert.deepEqual(contactItems({ location: "Hyderabad", phone: "+91 93467 82544", email: "a@b.dev", links: ["https://www.linkedin.com/in/x/", ""] }), [
+    { text: "Hyderabad" },
+    { text: "+91 93467 82544", href: "tel:+919346782544" },
+    { text: "a@b.dev", href: "mailto:a@b.dev" },
+    { text: "linkedin.com/in/x", href: "https://www.linkedin.com/in/x/" },
+  ]);
 });

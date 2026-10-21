@@ -3,7 +3,7 @@ import { and, count, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { resumeGenerationProjects, resumeGenerations, resumes, users } from "@/db/schema";
-import { displayUrl, type Profile } from "@/lib/profile";
+import type { Profile } from "@/lib/profile";
 import type { JobAnalysis } from "@/server/grounding";
 import { duplicatesProject, getJob } from "@/server/jobs";
 import { getProfile } from "@/server/profile";
@@ -167,7 +167,7 @@ export function assembleResume(
 
   const c = profile.contact;
   return {
-    header: { name: user.name, email: user.email, phone: c.phone, location: c.location, links: [c.linkedin, c.github, c.portfolio].filter(Boolean).map(displayUrl) },
+    header: { name: user.name, email: user.email, phone: c.phone, location: c.location, links: [c.linkedin, c.github, c.portfolio].filter(Boolean) }, // whole URLs; shortened only when shown
     summary: summaryOk ? modelSummary : profile.summary,
     skills,
     experience,
