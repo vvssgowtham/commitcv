@@ -36,6 +36,13 @@
       "when": 1792599435735,
       "tag": "0004_ai_usage_daily",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792600312700,
+      "tag": "0005_repo_index",
+      "breakpoints": true
     }
   ]
 }
