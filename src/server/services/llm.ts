@@ -1,8 +1,11 @@
 import "server-only";
 import { groq } from "@ai-sdk/groq";
-import { APICallError, generateObject, NoObjectGeneratedError, type FlexibleSchema } from "ai";
+import { and, eq, sql } from "drizzle-orm";
+import { APICallError, generateObject, NoObjectGeneratedError, RetryError, type FlexibleSchema, type LanguageModelUsage } from "ai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import type { z } from "zod";
+import { db } from "@/db";
+import { aiUsageDaily } from "@/db/schema";
 import { env } from "@/env";
 
 /** A failure the user can act on; the message is safe to show. */
@@ -18,6 +21,33 @@ function model() {
   return groq(MODEL);
 }
 
+// Groq's free tier for this model, shared by every user of the app (console.groq.com/docs/rate-limits).
+// Raise these when moving to a paid tier.
+const DAILY_TOKENS = 200_000;
+const DAILY_REQUESTS = 1_000;
+// Our UTC day and token counts are estimates of Groq's own window, so stop a little early.
+const HEADROOM = 0.9;
+const PROVIDER = "groq";
+const today = () => new Date().toISOString().slice(0, 10);
+const CAPACITY_MESSAGE = "CommitCV has used today's free AI capacity. Everything you've saved is safe — please come back tomorrow.";
+
+/** Throws a user-facing LlmError once today's shared free AI capacity is (nearly) used up. */
+export async function checkCapacity() {
+  const [row] = await db.select().from(aiUsageDaily).where(and(eq(aiUsageDaily.day, today()), eq(aiUsageDaily.provider, PROVIDER)));
+  if (row && (row.tokens >= DAILY_TOKENS * HEADROOM || row.requests >= DAILY_REQUESTS * HEADROOM)) {
+    throw new LlmError(CAPACITY_MESSAGE);
+  }
+}
+
+export async function recordUsage(usage: LanguageModelUsage | undefined) {
+  const tokens = (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0);
+  await db.insert(aiUsageDaily).values({ day: today(), provider: PROVIDER, tokens, requests: 1 })
+    .onConflictDoUpdate({ target: [aiUsageDaily.day, aiUsageDaily.provider], set: { tokens: sql`${aiUsageDaily.tokens} + ${tokens}`, requests: sql`${aiUsageDaily.requests} + 1` } });
+}
+
+// A failed usage write must not throw away a result the user already waited for.
+const record = (usage: LanguageModelUsage | undefined) => recordUsage(usage).catch((e) => console.error("recordUsage failed", e));
+
 const effortOptions = (effort: "low" | "medium" | "high"): SharedV4ProviderOptions => ({ groq: { reasoningEffort: effort } });
 
 // Left unset, the provider applies its own (sometimes low) default and silently truncates a large
@@ -30,19 +60,28 @@ const MAX_OUTPUT_TOKENS = 16000;
  * Inputs (resumes, job posts) are untrusted data; the system prompt says so.
  */
 export async function structured<S extends z.ZodType>(schema: S, { system, prompt, effort = "low" }: { system: string; prompt: string; effort?: "low" | "medium" | "high" }): Promise<z.infer<S>> {
+  await checkCapacity();
   try {
     // Cast needed at this boundary: generateObject's own generics can't re-derive z.infer<S> through
     // our already-generic S, so we pin its output type directly to what `structured` promises callers.
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: model(), output: "object", schema: schema as FlexibleSchema<z.infer<S>>, system, prompt,
       maxOutputTokens: MAX_OUTPUT_TOKENS, providerOptions: effortOptions(effort),
     });
+    await record(usage);
     return object;
-  } catch (e) {
-    if (NoObjectGeneratedError.isInstance(e)) throw new LlmError("Couldn't read the result. Please try again.");
+  } catch (caught) {
+    // After the SDK's own retries (which already wait out Groq's retry-after), the real error is wrapped.
+    const e = RetryError.isInstance(caught) ? caught.lastError : caught;
+    if (NoObjectGeneratedError.isInstance(e)) {
+      await record(e.usage); // tokens were spent even though the output was unusable
+      throw new LlmError("Couldn't read the result. Please try again.");
+    }
     if (APICallError.isInstance(e)) {
       if (e.statusCode === 401 || e.statusCode === 403) throw new LlmError("The AI provider rejected our API key. Check GROQ_API_KEY.");
-      if (e.statusCode === 413) throw new LlmError("That's more text than our AI provider's current limit allows. Try a shorter job description.");
+      if (e.statusCode === 413) throw new LlmError("That's more than our AI provider accepts in one go right now. Please try again in a minute — if it keeps happening, shorten the text.");
+      const providerMessage = String((e.data as { error?: { message?: string } } | undefined)?.error?.message ?? "");
+      if (e.statusCode === 429 && /per day|TPD|RPD/i.test(providerMessage)) throw new LlmError(CAPACITY_MESSAGE);
       if (e.isRetryable || e.statusCode === 429) throw new LlmError("Our AI provider is busy right now. Please try again in a minute.");
       if (e.data && typeof e.data === "object" && "error" in e.data) {
         const msg = String((e.data as { error?: { message?: string } }).error?.message ?? "");

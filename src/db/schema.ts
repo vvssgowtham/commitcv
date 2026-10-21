@@ -1,4 +1,4 @@
-import { bigint, boolean, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date());
@@ -221,3 +221,16 @@ export const candidateProfileSources = pgTable("candidate_profile_sources", {
   sourceReference: text("source_reference"),
   createdAt: createdAt(),
 });
+
+// App-wide AI usage per UTC day and provider. Free-tier limits are shared by every user, so this is
+// what the capacity gate checks before starting any AI action.
+export const aiUsageDaily = pgTable(
+  "ai_usage_daily",
+  {
+    day: date("day", { mode: "string" }).notNull(),
+    provider: text("provider").notNull(),
+    tokens: integer("tokens").notNull().default(0),
+    requests: integer("requests").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.provider] })],
+);

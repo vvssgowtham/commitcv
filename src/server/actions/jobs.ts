@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { verifySession } from "@/lib/dal";
 import { analyzeAndSaveJob, DAILY_JOBS, fetchPostingText, jobsToday } from "@/server/jobs";
-import { LlmError } from "@/server/services/llm";
+import { checkCapacity, LlmError } from "@/server/services/llm";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -20,6 +20,7 @@ export async function createJob(raw: { url: string } | { text: string }): Promis
   if ((await jobsToday(user.id)) >= DAILY_JOBS) return { ok: false, error: `You can analyse ${DAILY_JOBS} jobs per day. Try again tomorrow.` };
 
   try {
+    await checkCapacity();
     const url = "url" in parsed.data ? parsed.data.url : null;
     const description = url ? await fetchPostingText(url) : (parsed.data as { text: string }).text;
     const jobId = await analyzeAndSaveJob(user.id, description, url);

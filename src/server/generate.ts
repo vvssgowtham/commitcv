@@ -27,7 +27,7 @@ export type ResumeDoc = {
 
 export type AtsAnalysis = { score: number; keywordsCovered: string[]; keywordsMissing: string[]; checks: { label: string; ok: boolean }[] };
 
-export const DAILY_GENERATIONS = 20;
+export const DAILY_GENERATIONS = 3;
 
 const s = z.string();
 const bullets = z.array(z.object({ text: s, sourceLine: z.number().int() }));
@@ -184,7 +184,9 @@ export async function generateResume(userId: string, jobId: string, repoIds: str
 
     const out = await structured(generationOutput, {
       system: SYSTEM,
-      effort: "high",
+      // Measured on a real profile: high used 17.4k tokens in 31s, medium 7.1k in 10s with the same grounding result —
+      // high alone is over Groq's free 8k tokens/minute.
+      effort: "medium",
       prompt: `<job>\n${JSON.stringify(jobBrief)}\n</job>\n<candidate_data>\n${JSON.stringify(candidate)}\n</candidate_data>`,
     });
     const doc = assembleResume(profile, user!, repos, out);

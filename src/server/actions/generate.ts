@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { verifySession } from "@/lib/dal";
 import { DAILY_GENERATIONS, generateResume, generationsToday, getGeneration } from "@/server/generate";
-import { LlmError } from "@/server/services/llm";
+import { checkCapacity, LlmError } from "@/server/services/llm";
 import { downloadUrl } from "@/server/services/storage";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -17,6 +17,8 @@ export async function createResume(jobId: string, repoIds: string[]): Promise<Re
   if (!parsed.success) return { ok: false, error: "Invalid request." };
   if ((await generationsToday(user.id)) >= DAILY_GENERATIONS) return { ok: false, error: `You can generate ${DAILY_GENERATIONS} resumes per day. Try again tomorrow.` };
   try {
+    // Before generateResume creates its pending row, so a full day doesn't leave failed generations behind.
+    await checkCapacity();
     const generationId = await generateResume(user.id, parsed.data.jobId, parsed.data.repoIds);
     revalidatePath("/dashboard");
     revalidatePath(`/jobs/${parsed.data.jobId}`);
