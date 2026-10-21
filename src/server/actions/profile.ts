@@ -10,12 +10,12 @@ import { profileSchema, type Profile } from "@/lib/profile";
 import type { Change } from "@/lib/resume-merge";
 import { applyImport, previewImport, writeProfile } from "@/server/profile";
 import { contentTypes, extractResumeContent, MAX_RESUME_BYTES, normalizeParsed, PARSE_SYSTEM, parsedResumeOutput, sniffResume } from "@/server/resume-file";
-import { LlmError, structured } from "@/server/services/llm";
+import { checkCapacity, LlmError, structured } from "@/server/services/llm";
 import { putObject } from "@/server/services/storage";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
-const DAILY_UPLOADS = 10;
+const DAILY_UPLOADS = 3;
 
 export async function saveProfile(input: Profile): Promise<Result<Profile>> {
   const { user } = await verifySession();
@@ -41,6 +41,7 @@ export async function uploadResume(form: FormData): Promise<Result<{ resumeId: s
   if (n >= DAILY_UPLOADS) return { ok: false, error: `You can upload ${DAILY_UPLOADS} resumes per day. Try again tomorrow.` };
 
   try {
+    await checkCapacity();
     const { text, links } = await extractResumeContent(bytes, kind);
     if (text.trim().length < 50) return { ok: false, error: "Couldn't find readable text in that file — if it's a scanned image, try a text-based PDF instead." };
     const linksBlock = links.length ? `\n<hyperlinks>\n${links.join("\n")}\n</hyperlinks>` : "";
