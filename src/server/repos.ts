@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, notInArray } from "drizzle-orm";
 import { db } from "@/db";
-import { githubRepositories } from "@/db/schema";
+import { githubRepositories, repoChunks } from "@/db/schema";
 import type { GrantedRepo } from "@/server/services/github";
 
 export async function listRepos(userId: string) {
@@ -25,14 +25,22 @@ export async function saveSyncedRepos(userId: string, granted: GrantedRepo[]) {
     }
     const ids = granted.map((r) => r.githubRepoId);
     await tx.delete(githubRepositories).where(and(eq(githubRepositories.userId, userId), ids.length ? notInArray(githubRepositories.githubRepoId, ids) : undefined));
+    // Syncing is what someone does after fixing access (e.g. granting the app more permissions): retry failures.
+    await tx.update(githubRepositories).set({ indexStatus: "pending", indexError: null })
+      .where(and(eq(githubRepositories.userId, userId), eq(githubRepositories.indexStatus, "failed")));
   });
 }
 
+/** Excluding a repo also deletes its index, so its code is no longer kept; including it again re-indexes. */
 export async function setRepoIncluded(userId: string, repoId: string, included: boolean) {
-  const [row] = await db.update(githubRepositories).set({ included })
-    .where(and(eq(githubRepositories.id, repoId), eq(githubRepositories.userId, userId)))
-    .returning({ id: githubRepositories.id });
-  return !!row;
+  return db.transaction(async (tx) => {
+    const [row] = await tx.update(githubRepositories)
+      .set(included ? { included } : { included, indexStatus: "pending", indexedPushedAt: null, indexedAt: null, indexError: null, facts: null })
+      .where(and(eq(githubRepositories.id, repoId), eq(githubRepositories.userId, userId)))
+      .returning({ id: githubRepositories.id });
+    if (row && !included) await tx.delete(repoChunks).where(eq(repoChunks.repoId, row.id));
+    return !!row;
+  });
 }
 
 export type RepoRow = Awaited<ReturnType<typeof listRepos>>[number];

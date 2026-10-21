@@ -28,6 +28,25 @@ describe("embeddings", () => {
     expect(recorded).toEqual([200, 200, 100]); // 6 chars ≈ 2 tokens each, counted conservatively
   });
 
+  test("requests are also capped by characters", async () => {
+    const { batches } = await import("./embeddings");
+    expect(batches(Array.from({ length: 10 }, () => "x".repeat(5000))).map((b) => b.length)).toEqual([3, 3, 3, 1]);
+    expect(batches(["x".repeat(40_000), "y"]).map((b) => b.length)).toEqual([1, 1]); // a huge input goes alone
+  });
+
+  test("an 'input too big' rejection splits the request, then truncates a single oversized input", async () => {
+    const { embedDocuments } = await import("./embeddings");
+    const big = new APICallError({ message: "Bad Request", url: "u", requestBodyValues: {}, statusCode: 400, isRetryable: false,
+      responseBody: '{"errors":[{"message":"AiError: AiError: input too big","code":3030}]}' });
+    // Reject any request over 2 inputs, and any single input over 1,000 chars.
+    embedMany.mockImplementation(async ({ values }: { values: string[] }) => {
+      if (values.length > 2 || values.some((v) => v.length > 1000)) throw big;
+      return { embeddings: values.map((v) => [v.length]) };
+    });
+    const out = await embedDocuments(["a".repeat(600), "b".repeat(600), "c".repeat(600), "d".repeat(600), "e".repeat(3000)]);
+    expect(out).toEqual([[600], [600], [600], [600], [750]]); // order kept; the 3,000-char input embedded as its first 750
+  });
+
   test("queries get Qwen3's instruction, documents don't", async () => {
     const { embedDocuments, embedQueries } = await import("./embeddings");
     await embedDocuments(["doc"]);
