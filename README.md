@@ -27,6 +27,10 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/commitcv_test npm run d
 TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/commitcv_test npm test
 ```
 
+## Architecture
+
+![CommitCV architecture](public/architecture.png)
+
 ## How it works
 
 | Step | Code |
