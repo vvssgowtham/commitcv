@@ -2,6 +2,10 @@
 
 Tailor an ATS-friendly resume to each job: paste a job description or URL, pull your best projects from GitHub, export a PDF.
 
+> **Beta.** CommitCV is under active development. Expect rough edges, breaking database migrations and the occasional bad generation — always read the resume before you send it.
+
+![CommitCV](public/screenshot.png)
+
 **Stack:** Next.js (App Router, TS) · Tailwind v4 · Postgres + Drizzle · Better Auth (GitHub App sign-in, DB sessions, encrypted tokens) · Groq via the Vercel AI SDK · Cloudflare R2 · Zod · Vitest
 
 ## Setup
