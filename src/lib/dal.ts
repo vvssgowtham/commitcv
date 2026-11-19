@@ -21,8 +21,8 @@ export async function getGithubToken() {
 }
 
 /**
- * Fresh GitHub token for `userId`, with no session check — only for server-side jobs (the indexing cron)
- * and for getGithubToken above. Never call it with a user id that came from a client.
+ * Fresh GitHub token for `userId`, with no session check — only for getGithubToken above.
+ * Never call it with a user id that came from a client.
  */
 export async function githubTokenFor(userId: string) {
   const account = await db.query.accounts.findFirst({

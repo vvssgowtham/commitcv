@@ -21,10 +21,10 @@ const needsIndex = () => and(
   ),
 )!;
 
-/** Atomically claim one repo to index: the update re-checks the condition, so two tabs (or the cron and
- * a tab) can't index the same repo at once. */
-export async function claimNextRepo(scope?: SQL) {
-  const where = scope ? and(scope, needsIndex())! : needsIndex();
+/** Atomically claim one repo to index within `scope` (always one user): the update re-checks the
+ * condition, so two of the user's open tabs can't index the same repo at once. */
+export async function claimNextRepo(scope: SQL) {
+  const where = and(scope, needsIndex())!;
   const candidates = await db.select({ id: repos.id }).from(repos).where(where).orderBy(desc(repos.pushedAt)).limit(5);
   for (const { id } of candidates) {
     const [row] = await db.update(repos).set({ indexStatus: "indexing", indexedAt: new Date() }).where(and(eq(repos.id, id), where)).returning();

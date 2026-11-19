@@ -116,8 +116,8 @@ export function ProjectsView({ repos, toIndex, installUrl, login }: { repos: Rep
         {indexing.remaining > 0 && (
           <p role="status" className="mt-4 flex items-center gap-2 rounded-md border border-vc-hairline bg-white px-3 py-2 text-sm text-vc-body">
             {indexing.paused
-              ? <>Today’s free indexing allowance is used up — the remaining {indexing.remaining} repos are indexed tomorrow.</>
-              : <><Loader2 className="size-4 animate-spin" aria-hidden /> Reading your code — {indexing.remaining} {indexing.remaining === 1 ? "repository" : "repositories"} left. Keep this page open to finish sooner.</>}
+              ? <>Today’s free indexing allowance is used up — open this page again tomorrow to finish the remaining {indexing.remaining}.</>
+              : <><Loader2 className="size-4 animate-spin" aria-hidden /> Reading your code — {indexing.remaining} {indexing.remaining === 1 ? "repository" : "repositories"} left. Keep this page open until it’s done.</>}
           </p>
         )}
         {error && <p role="alert" className="mt-4 rounded-md border border-[#ffcfcf] bg-[#fff5f5] px-3 py-2 text-sm text-[#c50000]">{error}</p>}
