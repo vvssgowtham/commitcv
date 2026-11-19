@@ -39,7 +39,7 @@ export function AppSidebar({ userMenu }: { userMenu: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="hidden items-center gap-3 border-t border-ln-hairline p-4 md:flex">
+      <div className="flex items-center px-3 md:border-t md:border-ln-hairline md:p-4">
         {userMenu}
       </div>
     </aside>
