@@ -66,7 +66,7 @@ const EVIDENCE_CHARS = 4_500;
  * indexed code and docs. A fork's description and README are the original author's, so only its indexed
  * changes count. Falls back to description + README when the index can't be searched (e.g. no allowance left).
  */
-export async function repoSources(userId: string, repos: RepoRow[], requirements: string[], budget = EVIDENCE_CHARS): Promise<Map<string, RepoSource>> {
+async function repoSources(userId: string, repos: RepoRow[], requirements: string[], budget = EVIDENCE_CHARS): Promise<Map<string, RepoSource>> {
   let found: Awaited<ReturnType<typeof searchRepos>> = [];
   if (repos.length && requirements.length) {
     try {
@@ -106,7 +106,7 @@ export async function generationsToday(userId: string) {
 }
 
 /** Ground model output against the profile and assemble the final document. Facts come from `profile`, never from `out`. */
-export function assembleResume(
+function assembleResume(
   profile: Profile, user: { name: string; email: string }, repos: RepoRow[], out: z.infer<typeof generationOutput>,
   sources: Map<string, RepoSource> = new Map(),
 ): ResumeDoc {
@@ -180,7 +180,7 @@ export function assembleResume(
 }
 
 /** ATS analysis computed from the final text — no model-made score. */
-export function analyzeAts(doc: ResumeDoc, keywords: string[]): AtsAnalysis {
+function analyzeAts(doc: ResumeDoc, keywords: string[]): AtsAnalysis {
   const text = [
     doc.summary, ...doc.skills.flatMap((g) => g.items), ...doc.experience.flatMap((e) => [e.title, ...e.bullets]),
     ...doc.projects.flatMap((p) => [p.name, ...p.tech, ...p.bullets]), ...doc.certifications.map((c) => c.name),

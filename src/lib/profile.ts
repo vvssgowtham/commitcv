@@ -4,7 +4,7 @@ import { z } from "zod";
 // the editor's state, the save action's input validation, and the resume-merge logic all use it.
 // Empty values are "" (never null) so comparisons don't flip between null and "".
 
-export const sourceTypes = ["RESUME", "MANUAL", "GITHUB", "USER_EDIT"] as const;
+const sourceTypes = ["RESUME", "MANUAL", "GITHUB", "USER_EDIT"] as const;
 export type SourceType = (typeof sourceTypes)[number];
 
 // "YYYY", "YYYY-MM" or "" (unknown / present). Year-only stays year-only: we never invent a month.
@@ -45,6 +45,9 @@ export const emptyProfile: Profile = {
 
 export const fmtMonth = (ym: string) =>
   !ym ? "Present" : ym.length === 4 ? ym : new Date(`${ym}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+/** "Jan 2022 – Present", or just one side when the other is blank. Shared by the PDF and the preview. */
+export const range = (start: string, end: string) => (start ? `${fmtMonth(start)} – ${fmtMonth(end)}` : end ? fmtMonth(end) : "");
 
 /** How a URL is printed on the resume: "https://www.example.com/x/" → "example.com/x". */
 export const displayUrl = (url: string) => url.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");

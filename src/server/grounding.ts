@@ -2,8 +2,8 @@
 // owned id is dropped here, before it is stored or shown. Pure functions, unit-tested.
 
 export const evidenceKinds = ["experience", "project", "education", "certification", "award", "skill", "repo"] as const;
-export type EvidenceKind = (typeof evidenceKinds)[number];
-export type Evidence = { kind: EvidenceKind; id: string };
+type EvidenceKind = (typeof evidenceKinds)[number];
+type Evidence = { kind: EvidenceKind; id: string };
 
 /** Ids the user owns, per kind. `repo` holds only repos the user included. */
 export type OwnedIds = Record<EvidenceKind, Set<string>>;

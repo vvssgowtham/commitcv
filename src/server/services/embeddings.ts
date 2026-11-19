@@ -7,7 +7,6 @@ import { CapacityError, checkCapacity, LlmError, recordTokens } from "@/server/s
 // Open model (Apache-2.0), MTEB Code 75.41 — ahead of Gemini Embedding and OpenAI's large model —
 // served on Cloudflare Workers AI, which doesn't train on customer content.
 const MODEL = "@cf/qwen/qwen3-embedding-0.6b";
-export const EMBEDDING_DIMENSIONS = 1024;
 // Measured: 100 inputs per request in ~2.3s. Workers AI also rejects a request whose total *tokens* pass an
 // unpublished limit ("input too big", code 3030): 34 real chunks / 37k chars failed, 100 synthetic / 180k
 // passed. So requests are capped by characters too, and a rejected request is split until it fits.

@@ -31,7 +31,7 @@ export type Bullet = { text: string; sourceLine: number };
 
 /** Numbers in a bullet that cites code, other than ones inside a name copied verbatim from that code
  * ("AES-128", "node22"). A bare figure next to code ("10,000 requests") is a claim the code can't back. */
-export function looseNumbersForCode(text: string, code: string) {
+function looseNumbersForCode(text: string, code: string) {
   const inCode = new Set(words(code).map((w) => w.toLowerCase()));
   const named = words(text).filter((w) => /\d/.test(w) && inCode.has(w.toLowerCase()));
   return numbersIn(named.reduce((t, w) => t.split(w).join(" "), text));

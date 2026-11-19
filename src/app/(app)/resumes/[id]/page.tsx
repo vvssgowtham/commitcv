@@ -4,14 +4,12 @@ import { ArrowLeft, Check, Info, X } from "lucide-react";
 import { ScoreRing } from "@/components/score-ring";
 import { verifySession } from "@/lib/dal";
 import { Fragment } from "react";
-import { contactItems, displayUrl, fmtMonth, toHref } from "@/lib/profile";
+import { contactItems, displayUrl, fmtMonth, range, toHref } from "@/lib/profile";
 import { getGeneration, type ResumeDoc } from "@/server/generate";
 import { DownloadButton } from "./download-button";
 
 // Generated resume — clean document style (design/README.md): single column, black on white, no colour,
 // standard headings, real text — the same layout as the PDF. App chrome stays outside the page.
-
-const range = (start: string, end: string) => (start ? `${fmtMonth(start)} – ${fmtMonth(end)}` : end ? fmtMonth(end) : "");
 
 export default async function ResumePage({ params }: PageProps<"/resumes/[id]">) {
   const { user } = await verifySession();

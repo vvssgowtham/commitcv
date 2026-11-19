@@ -1,6 +1,6 @@
 import "server-only";
 import { Document, Font, Link, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { contactItems, displayUrl, fmtMonth, toHref } from "@/lib/profile";
+import { contactItems, displayUrl, fmtMonth, range, toHref } from "@/lib/profile";
 import type { ResumeDoc } from "@/server/generate";
 
 // ATS-safe PDF: one column, standard headings, real selectable text, built-in Helvetica, no images or tables.
@@ -43,7 +43,6 @@ const st = StyleSheet.create({
   link: { color: "#000", textDecoration: "none" },
 });
 
-const range = (start: string, end: string) => (start ? `${fmtMonth(start)} – ${fmtMonth(end)}` : end ? fmtMonth(end) : "");
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -73,7 +72,7 @@ function Row({ main, side }: { main: React.ReactNode; side: React.ReactNode }) {
   );
 }
 
-export function ResumePdf({ doc }: { doc: ResumeDoc }) {
+function ResumePdf({ doc }: { doc: ResumeDoc }) {
   const h = doc.header;
   return (
     <Document title={`${h.name} — Resume`} author={h.name}>
