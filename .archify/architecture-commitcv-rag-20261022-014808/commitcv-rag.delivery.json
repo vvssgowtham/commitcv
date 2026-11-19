@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "166be719-10d1-4d7e-8a12-355ef3bd93a5",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/candidate.json",
+  "output": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.html",
+  "specification": {
+    "sha256": "e8286c8d8922a7bb03b20371e79c667ecd889ab74ebf06e1753847e3fc74065e",
+    "bytes": 9657
+  },
+  "artifact": {
+    "sha256": "e6bb1cc119fa8f69a207a97f89f440ab6e48fb49ade4cc203c0e52831edc0349",
+    "bytes": 864552
+  }
+}

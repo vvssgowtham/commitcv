@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/candidate.json",
+    "sha256": "c207f1f0d529a1186d0a49356d4b3af21629454251c5bd24faac9fbdcf15a3cc",
+    "bytes": 9425
+  },
+  "artifact": {
+    "path": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.html",
+    "sha256": "3aa808513c92f3877a225cb53e4ade360694bb96258f8b1b0fe3336771855bdb",
+    "bytes": 864587
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.finalize.json",
+    "summaryReceipt": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.finalize-summary.json",
+    "browserCheckReceipt": "/Users/vvssgowtham/Documents/Projects/commitcv/.archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.browser-check.json"
+  },
+  "update": {
+    "status": "update_available",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": "https://github.com/tt-a1i/archify/releases/tag/v3.2.0",
+    "severity": "normal",
+    "checkedAt": "2026-10-21T20:18:50.970Z",
+    "source": "cache",
+    "noticeRequired": true,
+    "noticeText": "Archify update: 3.1.0 → 3.2.0. A previous check at 2026-10-21T20:18:50.970Z found a newer release. Release notes: https://github.com/tt-a1i/archify/releases/tag/v3.2.0. The installed Skill has not changed; ask to snooze or ignore this reminder.",
+    "eventKey": "archify@sha256:70e210265c59f24dcbdf2a502ff671104b5454e7ee7d3554aecd86bad32384f5"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6864,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 43,
+      "routesOverSuggestedBends": 9,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "webapp-auth",
+            "from": "webapp",
+            "to": "auth",
+            "label": "verifySession() on every request",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "id": "browser-r2",
+            "from": "browser",
+            "to": "r2",
+            "label": "download (signed URL)",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            304,
+            158.99999999999997
+          ]
+        },
+        {
+          "left": {
+            "id": "webapp-profile",
+            "from": "webapp",
+            "to": "profileIntake",
+            "label": "uploadResume()",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "browser-r2",
+            "from": "browser",
+            "to": "r2",
+            "label": "download (signed URL)",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            125,
+            159
+          ]
+        },
+        {
+          "left": {
+            "id": "webapp-reposync",
+            "from": "webapp",
+            "to": "reposync",
+            "label": "syncRepos()",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "browser-r2",
+            "from": "browser",
+            "to": "r2",
+            "label": "download (signed URL)",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            318,
+            159
+          ]
+        },
+        {
+          "left": {
+            "id": "webapp-indexer",
+            "from": "webapp",
+            "to": "indexer",
+            "label": "indexNextRepo()",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "webapp-jobanalysis",
+            "from": "webapp",
+            "to": "jobanalysis",
+            "label": "createJob()",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            490,
+            160
+          ],
+          "sharedNode": "webapp"
+        },
+        {
+          "left": {
+            "id": "webapp-indexer",
+            "from": "webapp",
+            "to": "indexer",
+            "label": "indexNextRepo()",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "browser-r2",
+            "from": "browser",
+            "to": "r2",
+            "label": "download (signed URL)",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            490,
+            159
+          ]
+        },
+        {
+          "left": {
+            "id": "webapp-indexer",
+            "from": "webapp",
+            "to": "indexer",
+            "label": "indexNextRepo()",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "reposync-github",
+            "from": "reposync",
+            "to": "github",
+            "label": "list granted repos",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            495,
+            376.56538461539117
+          ]
+        },
+        {
+          "left": {
+            "id": "webapp-jobanalysis",
+            "from": "webapp",
+            "to": "jobanalysis",
+            "label": "createJob()",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "webapp-generate",
+            "from": "webapp",
+            "to": "generate",
+            "label": "createResume()",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            488.0000000000001,
+            160
+          ],
+          "sharedNode": "webapp"
+        },
+        {
+          "left": {
+            "id": "webapp-jobanalysis",
+            "from": "webapp",
+            "to": "jobanalysis",
+            "label": "createJob()",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "webapp-r2",
+            "from": "webapp",
+            "to": "r2",
+            "label": "presign download URL",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "point": [
+            846.1,
+            160
+          ],
+          "sharedNode": "webapp"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "webapp-profile",
+            "from": "webapp",
+            "to": "profileIntake",
+            "label": "uploadResume()",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "webapp-reposync",
+            "from": "webapp",
+            "to": "reposync",
+            "label": "syncRepos()",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 4,
+          "stretch": 1.551
+        },
+        {
+          "relationship": {
+            "id": "webapp-generate",
+            "from": "webapp",
+            "to": "generate",
+            "label": "createResume()",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "browser-r2",
+            "from": "browser",
+            "to": "r2",
+            "label": "download (signed URL)",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "indexer-db",
+            "from": "indexer",
+            "to": "db",
+            "label": "store chunks + facts",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "search-embedsvc",
+            "from": "search",
+            "to": "embedsvc",
+            "label": "embed query",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "bends": 4,
+          "stretch": 1.044
+        },
+        {
+          "relationship": {
+            "id": "search-db",
+            "from": "search",
+            "to": "db",
+            "label": "vector + full-text search",
+            "collectionIndex": 17,
+            "artifactIndex": 18
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "profile-r2",
+            "from": "profileIntake",
+            "to": "r2",
+            "label": "store uploaded file",
+            "collectionIndex": 20,
+            "artifactIndex": 21
+          },
+          "bends": 3,
+          "stretch": 1.051
+        }
+      ],
+      "truncated": true
+    },
+    "hints": [
+      "webapp has 4 relationships facing its right side, which fits 3 ports: make that side at least 74px, or move some of those neighbours so they face another side of webapp.",
+      "webapp → auth crosses browser → r2: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "webapp → profileIntake crosses browser → r2: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "webapp → reposync crosses browser → r2: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "webapp → indexer and webapp → jobanalysis cross next to webapp: move node indexer or jobanalysis so the two reach webapp from different sides (for example one level with it, one directly above or below it).",
+      "webapp → indexer crosses browser → r2: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "webapp → indexer crosses reposync → github: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "webapp → jobanalysis and webapp → generate cross next to webapp: move node jobanalysis or generate so the two reach webapp from different sides (for example one level with it, one directly above or below it)."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

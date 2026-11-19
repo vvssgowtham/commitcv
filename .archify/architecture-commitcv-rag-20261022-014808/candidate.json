@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CommitCV Architecture",
+    "subtitle": "Auth, profile, GitHub sync, resume generation, and the repo RAG pipeline",
+    "output": ".archify/architecture-commitcv-rag-20261022-014808/commitcv-rag.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/vvssgowtham/commitcv.git",
+      "revision": "3d55e12a82d2deb54d24b19e52fa760dfbf285fb"
+    }
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "Job seeker", "icon": "person", "pos": [40, 40], "size": [120, 60] },
+    { "id": "webapp", "type": "frontend", "label": "Next.js App Router", "sublabel": "Pages + Server Actions", "pos": [230, 40], "size": [190, 64], "sources": [{ "path": "src/app/(app)/layout.tsx", "line": 14, "end_line": 22 }] },
+    { "id": "auth", "type": "security", "label": "Better Auth + GitHub App", "sublabel": "Session, OAuth tokens", "pos": [230, 200], "size": [190, 64], "sources": [{ "path": "src/auth.ts", "line": 7, "end_line": 27 }, { "path": "src/lib/dal.ts", "line": 11, "end_line": 21 }, { "path": "src/proxy.ts", "line": 6, "end_line": 9 }] },
+    { "id": "github", "type": "external", "label": "GitHub", "sublabel": "OAuth + REST API", "pos": [560, 200], "size": [170, 60], "sources": [{ "path": "src/server/repo-indexer.ts", "line": 41, "end_line": 49 }] },
+
+    { "id": "profileIntake", "type": "backend", "label": "Profile Intake", "sublabel": "Upload → parse → merge", "pos": [40, 360], "size": [170, 64], "sources": [{ "path": "src/server/actions/profile.ts", "line": 30, "end_line": 57 }, { "path": "src/server/resume-file.ts", "line": 105, "end_line": 107 }] },
+    { "id": "reposync", "type": "backend", "label": "Repo Sync", "sublabel": "Granted repos metadata", "pos": [260, 360], "size": [170, 64], "sources": [{ "path": "src/server/actions/repos.ts", "line": 13, "end_line": 26 }, { "path": "src/server/services/github.ts", "line": 23, "end_line": 45 }] },
+    { "id": "indexer", "type": "backend", "label": "Repo Indexer", "sublabel": "Tarball → chunks + facts", "pos": [560, 360], "size": [170, 64], "sources": [{ "path": "src/server/repo-indexer.ts", "line": 94, "end_line": 140 }, { "path": "src/server/repo-index.ts", "line": 196, "end_line": 214 }] },
+    { "id": "jobanalysis", "type": "backend", "label": "Job Analysis", "sublabel": "Compact repo listing + facts", "pos": [900, 360], "size": [170, 64], "sources": [{ "path": "src/server/jobs.ts", "line": 136, "end_line": 162 }] },
+    { "id": "generate", "type": "backend", "label": "Resume Generation", "sublabel": "Orchestrates RAG + grounding", "pos": [1150, 360], "size": [190, 64], "sources": [{ "path": "src/server/generate.ts", "line": 210, "end_line": 256 }] },
+    { "id": "search", "type": "backend", "label": "Hybrid Search", "sublabel": "vector + full-text → RRF", "pos": [1500, 360], "size": [170, 64], "sources": [{ "path": "src/server/repo-search.ts", "line": 34, "end_line": 59 }, { "path": "src/server/repo-search.ts", "line": 17, "end_line": 21 }] },
+
+    { "id": "embedsvc", "type": "backend", "label": "Embeddings Service", "sublabel": "Qwen3-Embedding-0.6B", "pos": [560, 520], "size": [170, 64], "sources": [{ "path": "src/server/services/embeddings.ts", "line": 9, "end_line": 25 }, { "path": "src/server/services/embeddings.ts", "line": 86, "end_line": 89 }] },
+    { "id": "workersai", "type": "cloud", "label": "Cloudflare Workers AI", "sublabel": "Embeddings API", "pos": [850, 520], "size": [180, 60], "sources": [{ "path": "src/server/services/embeddings.ts", "line": 18, "end_line": 25 }] },
+    { "id": "groq", "type": "external", "label": "Groq", "sublabel": "openai/gpt-oss-120b", "pos": [1080, 520], "size": [160, 60], "sources": [{ "path": "src/server/services/llm.ts", "line": 19, "end_line": 26 }] },
+    { "id": "grounding", "type": "backend", "label": "Grounding Validator", "sublabel": "No invented facts", "pos": [1280, 520], "size": [160, 64], "sources": [{ "path": "src/server/resume-grounding.ts", "line": 1, "end_line": 3 }, { "path": "src/server/resume-grounding.ts", "line": 52, "end_line": 72 }] },
+    { "id": "pdf", "type": "backend", "label": "PDF Renderer", "sublabel": "react-pdf, one page", "pos": [1480, 520], "size": [170, 64], "sources": [{ "path": "src/server/services/pdf.tsx", "line": 152, "end_line": 154 }] },
+
+    { "id": "db", "type": "database", "label": "Postgres + pgvector", "sublabel": "profiles · jobs · repo_chunks (vector + fts)", "pos": [40, 680], "size": [690, 72], "sources": [{ "path": "src/db/schema.ts", "line": 259, "end_line": 278 }, { "path": "src/db/schema.ts", "line": 99, "end_line": 124 }] },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "Resume files + generated PDFs", "pos": [1480, 680], "size": [170, 72], "sources": [{ "path": "src/server/services/storage.ts", "line": 7, "end_line": 27 }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Repo indexing (background job)", "wraps": ["reposync", "indexer", "embedsvc"], "pad": 20 },
+    { "kind": "region", "label": "Grounded generation", "wraps": ["grounding", "pdf"], "pad": 20 }
+  ],
+  "connections": [
+    { "id": "browser-webapp", "from": "browser", "to": "webapp", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "webapp-auth", "from": "webapp", "to": "auth", "label": "verifySession() on every request", "variant": "security" },
+
+    { "id": "webapp-profile", "from": "webapp", "to": "profileIntake", "label": "uploadResume()", "fromSide": "bottom" },
+    { "id": "webapp-reposync", "from": "webapp", "to": "reposync", "label": "syncRepos()", "fromSide": "bottom" },
+    { "id": "webapp-indexer", "from": "webapp", "to": "indexer", "label": "indexNextRepo()", "variant": "dashed", "fromSide": "bottom" },
+    { "id": "webapp-jobanalysis", "from": "webapp", "to": "jobanalysis", "label": "createJob()", "fromSide": "bottom" },
+    { "id": "webapp-generate", "from": "webapp", "to": "generate", "label": "createResume()", "fromSide": "bottom" },
+    { "id": "webapp-r2", "from": "webapp", "to": "r2", "label": "presign download URL", "fromSide": "right" },
+    { "id": "browser-r2", "from": "browser", "to": "r2", "label": "download (signed URL)", "variant": "dashed", "fromSide": "left", "toSide": "bottom", "via": [[10, 70], [10, 800], [1565, 800]] },
+
+    { "id": "reposync-github", "from": "reposync", "to": "github", "label": "list granted repos", "toSide": "left" },
+    { "id": "indexer-github", "from": "indexer", "to": "github", "label": "download tarball + diff" },
+    { "id": "reposync-db", "from": "reposync", "to": "db", "label": "upsert repos" },
+
+    { "id": "indexer-embedsvc", "from": "indexer", "to": "embedsvc", "label": "embed changed chunks", "variant": "emphasis" },
+    { "id": "embedsvc-workersai", "from": "embedsvc", "to": "workersai", "label": "embed", "variant": "emphasis" },
+    { "id": "indexer-db", "from": "indexer", "to": "db", "label": "store chunks + facts", "variant": "emphasis" },
+
+    { "id": "generate-search", "from": "generate", "to": "search", "label": "search code for requirements", "variant": "emphasis" },
+    { "id": "search-embedsvc", "from": "search", "to": "embedsvc", "label": "embed query", "variant": "emphasis" },
+    { "id": "search-db", "from": "search", "to": "db", "label": "vector + full-text search", "variant": "emphasis" },
+
+    { "id": "profile-groq", "from": "profileIntake", "to": "groq", "label": "parse resume" },
+    { "id": "profile-db", "from": "profileIntake", "to": "db", "label": "write profile" },
+    { "id": "profile-r2", "from": "profileIntake", "to": "r2", "label": "store uploaded file" },
+
+    { "id": "jobanalysis-db", "from": "jobanalysis", "to": "db", "label": "read facts, write job" },
+    { "id": "jobanalysis-groq", "from": "jobanalysis", "to": "groq", "label": "analyse posting" },
+
+    { "id": "generate-db", "from": "generate", "to": "db", "label": "read context, write generation" },
+    { "id": "generate-groq", "from": "generate", "to": "groq", "label": "draft bullets" },
+    { "id": "generate-grounding", "from": "generate", "to": "grounding", "label": "validate bullets" },
+    { "id": "generate-pdf", "from": "generate", "to": "pdf", "label": "render PDF" },
+    { "id": "generate-r2", "from": "generate", "to": "r2", "label": "store PDF" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Repo RAG — indexing", "items": ["Tarball parsed in memory: facts (deps, infra) read exactly from manifests; README/docs/code split into line-numbered chunks", "Forks index only their own commits' changed lines, never the upstream author's code", "Unchanged chunks keep their embedding (content-hash reuse) — a re-sync only pays for what actually changed", "A daily cron (not shown) finishes any repo nobody kept the Projects page open for"] },
+    { "dot": "emerald", "title": "Repo RAG — retrieval", "items": ["Hybrid search: cosine similarity (pgvector HNSW) + Postgres full-text, merged by reciprocal rank fusion", "Job analysis lists every repo's exact tech/facts (no search) — generation searches code against the job's extracted requirements", "Grounding rejects a code-cited bullet with any name or number not present in the cited excerpt"] },
+    { "dot": "amber", "title": "Shared free-tier guardrails", "items": ["ai_usage_daily (Postgres) tracks Groq tokens and Workers AI Neurons per day, shared by every user", "Over budget ⇒ CapacityError: indexing pauses, user actions show a clear retry-later message", "Over Groq's per-request estimate ⇒ one retry with less repo evidence, instead of failing outright"] }
+  ]
+}
